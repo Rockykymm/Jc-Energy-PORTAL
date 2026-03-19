@@ -11,10 +11,9 @@ url = st.secrets["SUPABASE_URL"]
 key = st.secrets["SUPABASE_KEY"]
 supabase = create_client(url, key)
 
-# FORCE SIDEBAR TO BE EXPANDED
 st.set_page_config(page_title="JC Energy Portal", layout="wide", initial_sidebar_state="expanded")
 
-# 2. BRANDING & CSS
+# 2. BRANDING & CSS (REFINED FOR READABILITY)
 def apply_branding():
     try:
         img = Image.open("Gemini_Generated_Image_ykd8mjykd8mjykd8.jpg")
@@ -31,44 +30,61 @@ def apply_branding():
         .stApp {{ background-color: #072a07; }}
         .logo-wrapper {{ display: flex; justify-content: center; padding: 10px 0; }}
         .logo-img {{ max-width: 180px; width: 40%; border-radius: 12px; }}
-        .welcome-text {{ color: #f1c40f !important; font-size: 38px !important; font-weight: 800 !important; text-align: center; margin-bottom: 5px; }}
+        .welcome-text {{ color: #f1c40f !important; font-size: 38px !important; font-weight: 800 !important; text-align: center; }}
+        
+        /* SHIFT ENTRY STYLING */
         .yellow-box {{ background-color: #f1c40f; color: black !important; padding: 20px; border-radius: 12px; text-align: center; font-weight: 900; font-size: 24px; margin: 10px 0; }}
         .opening-box {{ background-color: rgba(255, 255, 255, 0.1); border-left: 5px solid #f1c40f; padding: 15px; margin-bottom: 20px; border-radius: 5px; }}
-        label {{ color: white !important; font-weight: bold !important; }}
-        .stNumberInput input {{ background-color: white !important; color: black !important; font-size: 18px !important; }}
         
-        /* SIDEBAR FIX: Makes it clearly visible with a border */
+        /* FORM READABILITY */
+        label {{ color: white !important; font-weight: bold !important; font-size: 16px !important; }}
+        .stNumberInput input {{ background-color: white !important; color: black !important; font-size: 18px !important; font-weight: bold !important; }}
+        
+        /* SIDEBAR STYLING */
         [data-testid="stSidebar"] {{ 
-            background-color: #041a04 !important; 
-            border-right: 3px solid #f1c40f !important;
-            min-width: 250px !important;
+            background-color: rgba(0, 0, 0, 0.4) !important; 
+            border-right: 4px solid #f1c40f !important;
+            backdrop-filter: blur(10px);
         }}
-        [data-testid="stSidebar"] * {{ 
-            color: white !important; 
+        .nav-header {{ color: #f1c40f; font-size: 22px; font-weight: 800; text-align: center; border-bottom: 1px solid rgba(241,196,15,0.3); padding-bottom: 10px; }}
+        div[data-testid="stSidebar"] label p {{ color: white !important; font-size: 18px !important; font-weight: bold !important; }}
+
+        /* --- DATA READABILITY FIX (MANAGEMENT) --- */
+        .readable-card {{
+            background-color: rgba(255, 255, 255, 0.95); /* Nearly solid white for perfect contrast */
+            padding: 25px;
+            border-radius: 15px;
+            color: #000000 !important;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }}
         
-        /* Ensure radio buttons in sidebar are visible */
-        .stRadio label p {{
-            color: white !important;
-            font-size: 18px !important;
-            font-weight: bold !important;
+        /* Force all text inside management cards to be black */
+        .readable-card h2, .readable-card h3, .readable-card p, .readable-card span, .readable-card div {{ 
+            color: #000000 !important; 
         }}
 
-        /* Management Dashboard card */
-        .admin-card {{
-            background-color: white;
-            padding: 30px;
-            border-radius: 15px;
-            color: black !important;
-            margin-top: 20px;
-        }}
-        .admin-card h2, .admin-card h3, .admin-card p, .admin-card span {{ 
-            color: black !important; 
+        /* Table readability */
+        [data-testid="stTable"], [data-testid="stDataFrame"] {{
+            background-color: white !important;
+            border-radius: 10px;
         }}
         
+        /* Tab text color */
+        button[data-baseweb="tab"] p {{
+            color: #f1c40f !important;
+            font-weight: bold !important;
+        }}
+        
+        /* Metrics inside white card */
         [data-testid="stMetricValue"] {{
             color: #072a07 !important;
-            font-weight: 800 !important;
+            font-weight: 900 !important;
+            font-size: 28px !important;
+        }}
+        [data-testid="stMetricLabel"] {{
+            color: #444444 !important;
+            font-weight: bold !important;
         }}
         </style>
         {logo_html}
@@ -97,29 +113,21 @@ if not st.session_state.logged_in:
 
 # 4. SIDEBAR NAVIGATION
 user = st.session_state.user
-
-# Sidebar Content
 with st.sidebar:
-    st.markdown(f"### 👤 {user['full_name']}")
-    st.write("---")
-    
+    st.markdown('<div class="nav-header">NAVIGATION</div>', unsafe_allow_html=True)
+    st.markdown(f"**👤 {user['full_name']}**")
     menu = ["📝 Record Shift"]
-    # Check if user is Admin/Manager
     if user['full_name'] == "Peter Kimani" or user.get('role') == 'manager':
         menu.append("👨‍💼 Management")
-
-    # This radio button lets you switch between the Shift page and Management
-    choice = st.radio("GO TO:", menu, index=0)
-    
-    st.write("---")
-    if st.button("Logout"):
+    choice = st.radio("SELECT PAGE:", menu, index=0, label_visibility="collapsed")
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    if st.button("🚪 Logout", use_container_width=True):
         st.session_state.logged_in = False
         st.rerun()
 
 # --- PAGE 1: RECORD SHIFT ---
 if choice == "📝 Record Shift":
     st.markdown(f'<div class="welcome-text">Welcome, {user["full_name"]}</div>', unsafe_allow_html=True)
-    
     res_last = supabase.table("shift_logs").select("pump_reading_end").order("created_at", desc=True).limit(1).execute()
     start_val = float(res_last.data[0]["pump_reading_end"]) if res_last.data else 0.0
 
@@ -131,10 +139,8 @@ if choice == "📝 Record Shift":
     with col2:
         price_per_liter = st.number_input("Price per Liter (KES)", value=189.0, step=0.1)
 
-    # Calculation logic
     liters_sold = start_val - end_reading
     total_sales_expected = liters_sold * price_per_liter
-    
     st.markdown(f'<div class="yellow-box">TOTAL SALES: KES {max(0.0, total_sales_expected):,.2f}</div>', unsafe_allow_html=True)
 
     pay_col1, pay_col2 = st.columns(2)
@@ -163,30 +169,35 @@ if choice == "📝 Record Shift":
             st.success("Shift Logged Successfully!")
             st.rerun()
 
-# --- PAGE 2: MANAGEMENT ---
+# --- PAGE 2: MANAGEMENT (IMPROVED READABILITY) ---
 elif choice == "👨‍💼 Management":
     st.markdown('<div class="welcome-text">Management Dashboard</div>', unsafe_allow_html=True)
-    
     tab1, tab2 = st.tabs(["📊 Business Logs", "👥 Staff Management"])
     
     with tab1:
-        st.markdown('<div class="admin-card">', unsafe_allow_html=True)
-        st.markdown("### All Shift Records")
+        st.markdown('<div class="readable-card">', unsafe_allow_html=True)
+        st.markdown("### Business Summary")
         logs_res = supabase.table("shift_logs").select("*").order("created_at", desc=True).execute()
         if logs_res.data:
             df = pd.DataFrame(logs_res.data)
             s1, s2, s3 = st.columns(3)
-            s1.metric("Total Liters Sold", f"{df['liters_sold'].sum():,.1f}")
+            s1.metric("Liters Sold", f"{df['liters_sold'].sum():,.1f}")
             s2.metric("Total Revenue", f"KES {df['total_collected'].sum():,.2f}")
-            s3.metric("Net Shortages", f"KES {df['difference'].sum():,.2f}")
-            st.write("---")
-            st.dataframe(df[['created_at', 'attendant_name', 'liters_sold', 'total_collected', 'difference']], use_container_width=True)
+            
+            net_diff = df['difference'].sum()
+            s3.metric("Net Balance", f"KES {net_diff:,.2f}")
+            
+            st.markdown("#### Detailed Logs")
+            # Clean up dataframe for display
+            display_df = df[['created_at', 'attendant_name', 'liters_sold', 'total_collected', 'difference']].copy()
+            display_df['created_at'] = pd.to_datetime(display_df['created_at']).dt.strftime('%Y-%m-%d %H:%M')
+            st.dataframe(display_df, use_container_width=True)
         else:
             st.info("No logs found yet.")
         st.markdown('</div>', unsafe_allow_html=True)
 
     with tab2:
-        st.markdown('<div class="admin-card">', unsafe_allow_html=True)
+        st.markdown('<div class="readable-card">', unsafe_allow_html=True)
         st.markdown("### Team Overview")
         staff_res = supabase.table("staff").select("*").execute()
         if staff_res.data:
