@@ -6,158 +6,157 @@ import io
 import base64
 
 # 1. DATABASE CONNECTION
-# Ensure these match your Secrets in Streamlit Cloud
 url = st.secrets["SUPABASE_URL"]
 key = st.secrets["SUPABASE_KEY"]
 supabase = create_client(url, key)
 
-# 2. PAGE CONFIGURATION
-st.set_page_config(
-    page_title="JC Energy Secure Portal",
-    page_icon="⛽",
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
+st.set_page_config(page_title="JC Energy Portal", layout="wide")
 
-# 3. HIGH-DETAIL BRANDING & RESPONSIVE CSS
+# 2. HIGH-DETAIL BRANDING & DYNAMIC CSS
 def apply_branding():
     try:
-        # Load the local file to prevent web-link breakage
         img = Image.open("Gemini_Generated_Image_ykd8mjykd8mjykd8.jpg")
-        
-        # Convert to high-quality Base64 to maintain detail on all screens
         buffered = io.BytesIO()
         img.save(buffered, format="JPEG", quality=100)
         img_str = base64.b64encode(buffered.getvalue()).decode()
-        
-        st.markdown(
-            f"""
-            <style>
-            /* Main Background */
-            .stApp {{
-                background-color: #072a07;
-                color: white;
-            }}
-            
-            /* Sharp, Responsive Logo */
-            .logo-wrapper {{
-                display: flex;
-                justify-content: center;
-                padding: 20px 0;
-            }}
-            .logo-img {{
-                max-width: 250px;
-                width: 60%;
-                height: auto;
-                border-radius: 15px;
-                box-shadow: 0px 8px 20px rgba(0,0,0,0.4);
-                image-rendering: -webkit-optimize-contrast;
-            }}
-
-            /* Global Text Styling */
-            h1, h2, h3, h4, p, label, .stMarkdown {{ 
-                color: white !important; 
-            }}
-
-            /* Mobile-Friendly Input Boxes */
-            .stNumberInput input, .stTextInput input {{
-                background-color: white !important;
-                color: black !important;
-                height: 50px !important;
-                font-size: 18px !important;
-                border-radius: 8px !important;
-            }}
-
-            /* Big Green Submit Button for Android */
-            div.stButton > button {{
-                background-color: #2e7d32 !important;
-                color: white !important;
-                height: 55px !important;
-                width: 100% !important;
-                font-weight: bold !important;
-                font-size: 18px !important;
-                border-radius: 12px !important;
-                border: 2px solid #388e3c !important;
-                margin-top: 10px;
-            }}
-
-            /* Clean up the UI */
-            header {{visibility: hidden;}}
-            footer {{visibility: hidden;}}
-            [data-testid="stHeader"] {{background: rgba(0,0,0,0);}}
-            </style>
-            
-            <div class="logo-wrapper">
-                <img src="data:image/jpeg;base64,{img_str}" class="logo-img">
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+        logo_html = f'<div class="logo-wrapper"><img src="data:image/jpeg;base64,{img_str}" class="logo-img"></div>'
     except:
-        st.markdown("<h1 style='text-align: center; color: white;'>JC ENERGY</h1>", unsafe_allow_html=True)
+        logo_html = "<h1 style='text-align: center; color: #f1c40f;'>JC ENERGY</h1>"
+
+    st.markdown(
+        f"""
+        <style>
+        .stApp {{ background-color: #072a07; }}
+        
+        {logo_html}
+        .logo-wrapper {{ display: flex; justify-content: center; padding: 10px 0; }}
+        .logo-img {{ max-width: 220px; width: 50%; border-radius: 12px; }}
+
+        /* Big Bright Welcome */
+        .welcome-text {{
+            color: #f1c40f !important;
+            font-size: 42px !important;
+            font-weight: 800 !important;
+            text-align: center;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }}
+
+        /* Yellow Calculation Boxes */
+        .yellow-box {{
+            background-color: #f1c40f;
+            color: black !important;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 20px;
+            margin: 10px 0;
+        }}
+        
+        .short-warning {{
+            color: #d63031 !important; /* Red text */
+            font-size: 24px;
+        }}
+
+        /* Input Styling */
+        label {{ color: white !important; font-size: 16px !important; }}
+        .stNumberInput input {{ background-color: white !important; color: black !important; font-size: 18px !important; }}
+        
+        /* Submit Button */
+        div.stButton > button {{
+            background-color: #f1c40f !important;
+            color: black !important;
+            font-weight: bold !important;
+            font-size: 20px !important;
+            height: 60px !important;
+            border-radius: 15px !important;
+            border: none !important;
+            margin-top: 20px;
+        }}
+        header {{visibility: hidden;}}
+        </style>
+        {logo_html}
+        """,
+        unsafe_allow_html=True
+    )
 
 apply_branding()
 
-# 4. LOGIN SYSTEM
+# 3. LOGIN SYSTEM
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
 if not st.session_state.logged_in:
     _, col, _ = st.columns([0.1, 0.8, 0.1])
     with col:
-        st.markdown("<h3 style='text-align: center;'>🔐 Staff Login</h3>", unsafe_allow_html=True)
-        work_id = st.text_input("Enter Work ID", type="password", placeholder="e.g. 001")
-        if st.button("Open Portal"):
+        st.markdown("<h3 style='text-align: center; color: white;'>🔐 Staff Access</h3>", unsafe_allow_html=True)
+        work_id = st.text_input("Work ID", type="password")
+        if st.button("Open Portal", use_container_width=True):
             res = supabase.table("staff").select("*").eq("work_id", work_id).execute()
             if res.data:
                 st.session_state.logged_in = True
                 st.session_state.user = res.data[0]
                 st.rerun()
-            else:
-                st.error("Invalid ID. Check with manager.")
     st.stop()
 
-# 5. MAIN APP INTERFACE
+# 4. MAIN INTERFACE
 user = st.session_state.user
-tabs = st.tabs(["📝 Record Shift", "📊 History"])
+st.markdown(f'<div class="welcome-text">Welcome, {user["full_name"]}</div>', unsafe_allow_html=True)
 
-with tabs[0]:
-    st.markdown(f"**Current Attendant:** {user['full_name']}")
-    
-    # Auto-fetch the opening reading from the last entry
-    res_last = supabase.table("shift_logs").select("pump_reading_end").order("created_at", desc=True).limit(1).execute()
-    start_val = float(res_last.data[0]["pump_reading_end"]) if res_last.data else 0.0
-    
-    st.info(f"Opening Pump Reading: **{start_val:,} L**")
-    
-    with st.form("shift_form", clear_on_submit=True):
-        st.markdown("### Enter Shift Totals")
-        end_reading = st.number_input("Closing Pump Reading (Liters)", value=start_val, step=0.1)
-        cash = st.number_input("Total Cash Collected (KES)", min_value=0.0, step=1.0)
-        mpesa = st.number_input("Total M-Pesa Collected (KES)", min_value=0.0, step=1.0)
-        
-        if st.form_submit_button("Submit Shift & Log Out"):
-            liters = end_reading - start_val
-            if liters < 0:
-                st.error("Error: Closing reading cannot be less than opening.")
-            else:
-                total_money = cash + mpesa
-                supabase.table("shift_logs").insert({
-                    "attendant_name": user['full_name'],
-                    "pump_reading_start": start_val,
-                    "pump_reading_end": end_reading,
-                    "liters_sold": liters,
-                    "total_collected": total_money
-                }).execute()
-                
-                st.success("Data Saved! Logging out...")
-                st.session_state.logged_in = False
-                st.rerun()
+# Fetch Last Reading
+res_last = supabase.table("shift_logs").select("pump_reading_end").order("created_at", desc=True).limit(1).execute()
+start_val = float(res_last.data[0]["pump_reading_end"]) if res_last.data else 0.0
 
-with tabs[1]:
-    st.markdown("### Your Recent Shifts")
-    history = supabase.table("shift_logs").select("*").eq("attendant_name", user['full_name']).order("created_at", desc=True).limit(5).execute()
-    if history.data:
+with st.form("shift_form"):
+    # Row 1: Readings & Price
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.write(f"**Opening:** {start_val:,} L")
+        end_reading = st.number_input("Closing Reading (L)", value=start_val, step=0.1)
+    with col2:
+        price_per_liter = st.number_input("Price per Liter (KES)", value=189.0, step=0.5)
+    with col3:
+        liters_sold = end_reading - start_val
+        total_sales_expected = liters_sold * price_per_liter
+        st.markdown(f'<div class="yellow-box">Total Sales<br>KES {total_sales_expected:,.2f}</div>', unsafe_allow_html=True)
+
+    # Row 2: Parallel Payments
+    p_col1, p_col2 = st.columns(2)
+    with p_col1:
+        cash = st.number_input("Total Cash (KES)", min_value=0.0)
+    with p_col2:
+        mpesa = st.number_input("Total M-Pesa (KES)", min_value=0.0)
+
+    # Calculation Logic
+    actual_collected = cash + mpesa
+    difference = actual_collected - total_sales_expected
+
+    # Display Difference
+    if difference < 0:
+        st.markdown(f'<div class="yellow-box short-warning">SHORTAGE: KES {abs(difference):,.2f}</div>', unsafe_allow_html=True)
+    elif difference > 0:
+        st.markdown(f'<div class="yellow-box" style="color: green !important;">OVERAGE: KES {difference:,.2f}</div>', unsafe_allow_html=True)
+    else:
+        st.markdown('<div class="yellow-box">ACCOUNT BALANCED</div>', unsafe_allow_html=True)
+
+    submit = st.form_submit_button("VERIFY & SUBMIT SHIFT", use_container_width=True)
+    
+    if submit:
+        if liters_sold < 0:
+            st.error("Error: Closing reading is lower than opening!")
+        else:
+            supabase.table("shift_logs").insert({
+                "attendant_name": user['full_name'],
+                "pump_reading_start": start_val,
+                "pump_reading_end": end_reading,
+                "liters_sold": liters_sold,
+                "total_collected": actual_collected,
+                "difference": difference
+            }).execute()
+            st.success("Shift successfully logged!")
+            st.session_state.logged_in = False
+            st.rerun()
         df = pd.DataFrame(history.data)
         st.dataframe(df[['created_at', 'liters_sold', 'total_collected']])
     else:
