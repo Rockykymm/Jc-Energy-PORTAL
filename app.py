@@ -61,7 +61,7 @@ def apply_branding():
             background-color: #2d3436 !important;
             color: #f1c40f !important;
             font-size: 15px !important;
-            white-space: nowrap !important; /* Keeps columns from squishing */
+            white-space: nowrap !important;
         }}
         tbody tr td {{
             background-color: white !important;
@@ -70,13 +70,12 @@ def apply_branding():
             font-weight: 500;
         }}
         
-        /* Scrollbar for the table if screen is small */
         .stTable {{
             overflow-x: auto;
             display: block;
         }}
 
-        /* MANAGEMENT DASHBOARD CARDS */
+        /* MANAGEMENT DASHBOARD CARDS (Ensures text inside stays black) */
         .readable-card {{
             background-color: white;
             padding: 30px;
@@ -85,7 +84,7 @@ def apply_branding():
             margin-bottom: 25px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }}
-        .readable-card h3, .readable-card p, .readable-card label {{
+        .readable-card h3, .readable-card p, .readable-card label, .readable-card span {{
             color: black !important;
         }}
         
@@ -93,6 +92,20 @@ def apply_branding():
         [data-testid="stMetricValue"] {{
             color: #072a07 !important;
             font-weight: 900 !important;
+        }}
+
+        /* --- UPGRADED TEAM MANAGEMENT VISIBILITY --- */
+        /* Forces text on the green background to be white/yellow */
+        #active-staff-members, #register-new-staff, 
+        [data-testid="stVerticalBlock"] p, 
+        [data-testid="stVerticalBlock"] label {{
+            color: #FFFFFF !important;
+        }}
+        
+        /* Specific contrast for Input Labels */
+        .stTextInput label p {{
+            color: #f1c40f !important; 
+            font-size: 16px !important;
         }}
         </style>
         {logo_html}
