@@ -11,7 +11,8 @@ url = st.secrets["SUPABASE_URL"]
 key = st.secrets["SUPABASE_KEY"]
 supabase = create_client(url, key)
 
-st.set_page_config(page_title="JC Energy Portal", layout="wide")
+# Set page to wide and ensure sidebar is visible by default
+st.set_page_config(page_title="JC Energy Portal", layout="wide", initial_sidebar_state="expanded")
 
 # 2. BRANDING & CSS
 def apply_branding():
@@ -35,9 +36,32 @@ def apply_branding():
         .opening-box {{ background-color: rgba(255, 255, 255, 0.1); border-left: 5px solid #f1c40f; padding: 15px; margin-bottom: 20px; border-radius: 5px; }}
         label {{ color: white !important; font-weight: bold !important; }}
         .stNumberInput input {{ background-color: white !important; color: black !important; font-size: 18px !important; }}
-        header {{visibility: hidden;}}
-        /* Sidebar styling */
+        
+        /* SIDEBAR TOGGLE & VISIBILITY FIX */
         [data-testid="stSidebar"] {{ background-color: #041a04; border-right: 1px solid #f1c40f; }}
+        
+        /* Fixed Yellow Sidebar Arrow for Top Left */
+        button[kind="headerNoSpacing"] {{
+            background-color: #f1c40f !important;
+            color: black !important;
+            border-radius: 50% !important;
+            left: 10px !important;
+            top: 10px !important;
+            position: fixed !important;
+            z-index: 999999;
+        }}
+        
+        /* Management Dashboard White-Card Visibility */
+        .admin-card {{
+            background-color: white;
+            padding: 20px;
+            border-radius: 15px;
+            color: black !important;
+            margin-bottom: 20px;
+        }}
+        .admin-card * {{ color: black !important; }}
+
+        header {{visibility: hidden;}}
         </style>
         {logo_html}
         """,
@@ -65,8 +89,7 @@ if not st.session_state.logged_in:
 
 # 4. SIDEBAR NAVIGATION
 user = st.session_state.user
-st.sidebar.title("Navigation")
-# Only show Management if the user is Peter or has a manager role
+st.sidebar.title("JC Navigation")
 menu = ["📝 Record Shift"]
 if user['full_name'] == "Peter Kimani" or user.get('role') == 'manager':
     menu.append("👨‍💼 Management")
@@ -77,7 +100,7 @@ if st.sidebar.button("Logout"):
     st.session_state.logged_in = False
     st.rerun()
 
-# --- PAGE 1: RECORD SHIFT ---
+# --- PAGE 1: RECORD SHIFT (Logic: Opening - Closing) ---
 if choice == "📝 Record Shift":
     st.markdown(f'<div class="welcome-text">Welcome, {user["full_name"]}</div>', unsafe_allow_html=True)
     
@@ -92,64 +115,8 @@ if choice == "📝 Record Shift":
     with col2:
         price_per_liter = st.number_input("Price per Liter (KES)", value=189.0, step=0.1)
 
-    liters_sold = end_reading - start_val
-    total_sales_expected = liters_sold * price_per_liter
+    # MATH: Opening - Closing = Liters Sold
+    liters_sold = start_val - end_reading
+    total_sales_expected = max(0.0, liters_sold * price_per_liter)
+    
     st.markdown(f'<div class="yellow-box">TOTAL SALES: KES {total_sales_expected:,.2f}</div>', unsafe_allow_html=True)
-
-    pay_col1, pay_col2 = st.columns(2)
-    with pay_col1:
-        cash = st.number_input("Cash Collected (KES)", min_value=0.0)
-    with pay_col2:
-        mpesa = st.number_input("M-Pesa Collected (KES)", min_value=0.0)
-
-    actual = cash + mpesa
-    diff = actual - total_sales_expected
-
-    if diff < 0:
-        st.markdown(f'<div class="yellow-box" style="color: #b33939 !important;">SHORTAGE: KES {abs(diff):,.2f}</div>', unsafe_allow_html=True)
-    else:
-        st.markdown(f'<div class="yellow-box" style="color: #27ae60 !important;">{"BALANCED" if diff==0 else "OVERAGE"}: KES {diff:,.2f}</div>', unsafe_allow_html=True)
-
-    if st.button("VERIFY & SUBMIT SHIFT", use_container_width=True):
-        supabase.table("shift_logs").insert({
-            "attendant_name": user['full_name'], "pump_reading_start": start_val,
-            "pump_reading_end": end_reading, "liters_sold": liters_sold,
-            "total_collected": actual, "difference": diff
-        }).execute()
-        st.success("Shift Logged Successfully!")
-        st.rerun()
-
-# --- PAGE 2: MANAGEMENT ---
-elif choice == "👨‍💼 Management":
-    st.markdown('<div class="welcome-text">Management Dashboard</div>', unsafe_allow_html=True)
-    
-    tab1, tab2 = st.tabs(["📊 Business Logs", "👥 Staff Management"])
-    
-    with tab1:
-        st.subheader("All Shift Records")
-        logs_res = supabase.table("shift_logs").select("*").order("created_at", desc=True).execute()
-        if logs_res.data:
-            df = pd.DataFrame(logs_res.data)
-            # Display Key Stats
-            s1, s2, s3 = st.columns(3)
-            s1.metric("Total Liters Sold", f"{df['liters_sold'].sum():,.1f}")
-            s2.metric("Total Revenue", f"KES {df['total_collected'].sum():,.2f}")
-            s3.metric("Net Shortages", f"KES {df['difference'].sum():,.2f}", delta_color="inverse")
-            
-            st.dataframe(df[['created_at', 'attendant_name', 'liters_sold', 'total_collected', 'difference']], use_container_width=True)
-        else:
-            st.info("No logs found yet.")
-
-    with tab2:
-        st.subheader("Team Overview")
-        staff_res = supabase.table("staff").select("*").execute()
-        if staff_res.data:
-            st.table(pd.DataFrame(staff_res.data)[['full_name', 'work_id']])
-        
-        with st.expander("➕ Add New Employee"):
-            new_name = st.text_input("Full Name")
-            new_id = st.text_input("Assign Work ID (e.g. 005)")
-            if st.button("Save New Employee"):
-                supabase.table("staff").insert({"full_name": new_name, "work_id": new_id}).execute()
-                st.success(f"Successfully added {new_name}")
-                st.rerun()
