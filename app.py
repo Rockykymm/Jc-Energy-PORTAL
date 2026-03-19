@@ -12,7 +12,7 @@ supabase = create_client(url, key)
 
 st.set_page_config(page_title="JC Energy Portal", layout="wide")
 
-# 2. HIGH-DETAIL BRANDING & DYNAMIC CSS
+# 2. BRANDING & CSS OVERHAUL
 def apply_branding():
     try:
         img = Image.open("Gemini_Generated_Image_ykd8mjykd8mjykd8.jpg")
@@ -28,51 +28,59 @@ def apply_branding():
         <style>
         .stApp {{ background-color: #072a07; }}
         
-        {logo_html}
         .logo-wrapper {{ display: flex; justify-content: center; padding: 10px 0; }}
-        .logo-img {{ max-width: 220px; width: 50%; border-radius: 12px; }}
+        .logo-img {{ max-width: 200px; width: 45%; border-radius: 12px; }}
 
         /* Big Bright Welcome */
         .welcome-text {{
             color: #f1c40f !important;
-            font-size: 42px !important;
+            font-size: clamp(30px, 5vw, 42px) !important;
             font-weight: 800 !important;
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 5px;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
         }}
 
-        /* Yellow Calculation Boxes */
+        /* Opening Reading Visibility */
+        .opening-box {{
+            background-color: rgba(255, 255, 255, 0.1);
+            border-left: 5px solid #f1c40f;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }}
+
+        /* Live Yellow Calculation Boxes */
         .yellow-box {{
             background-color: #f1c40f;
             color: black !important;
-            padding: 15px;
-            border-radius: 10px;
+            padding: 20px;
+            border-radius: 12px;
             text-align: center;
-            font-weight: bold;
-            font-size: 20px;
+            font-weight: 900;
+            font-size: 24px;
             margin: 10px 0;
+            box-shadow: 0px 4px 15px rgba(0,0,0,0.3);
         }}
         
-        .short-warning {{
-            color: #d63031 !important; /* Red text */
-            font-size: 24px;
+        .short-text {{
+            color: #b33939 !important; /* Deep Red for visibility */
+            display: block;
+            font-size: 28px;
         }}
 
-        /* Input Styling */
-        label {{ color: white !important; font-size: 16px !important; }}
-        .stNumberInput input {{ background-color: white !important; color: black !important; font-size: 18px !important; }}
+        /* Input Adjustments */
+        label {{ color: white !important; font-weight: bold !important; }}
+        .stNumberInput input {{ background-color: white !important; color: black !important; font-size: 20px !important; }}
         
-        /* Submit Button */
         div.stButton > button {{
             background-color: #f1c40f !important;
             color: black !important;
             font-weight: bold !important;
-            font-size: 20px !important;
-            height: 60px !important;
+            font-size: 22px !important;
+            height: 65px !important;
             border-radius: 15px !important;
-            border: none !important;
-            margin-top: 20px;
+            border: 3px solid #d4ac0d !important;
         }}
         header {{visibility: hidden;}}
         </style>
@@ -83,14 +91,14 @@ def apply_branding():
 
 apply_branding()
 
-# 3. LOGIN SYSTEM
+# 3. LOGIN SESSION
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
 if not st.session_state.logged_in:
     _, col, _ = st.columns([0.1, 0.8, 0.1])
     with col:
-        st.markdown("<h3 style='text-align: center; color: white;'>🔐 Staff Access</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='text-align: center; color: white;'>🔐 Staff Login</h3>", unsafe_allow_html=True)
         work_id = st.text_input("Work ID", type="password")
         if st.button("Open Portal", use_container_width=True):
             res = supabase.table("staff").select("*").eq("work_id", work_id).execute()
@@ -100,7 +108,7 @@ if not st.session_state.logged_in:
                 st.rerun()
     st.stop()
 
-# 4. MAIN INTERFACE
+# 4. LIVE CALCULATOR INTERFACE
 user = st.session_state.user
 st.markdown(f'<div class="welcome-text">Welcome, {user["full_name"]}</div>', unsafe_allow_html=True)
 
@@ -108,43 +116,54 @@ st.markdown(f'<div class="welcome-text">Welcome, {user["full_name"]}</div>', uns
 res_last = supabase.table("shift_logs").select("pump_reading_end").order("created_at", desc=True).limit(1).execute()
 start_val = float(res_last.data[0]["pump_reading_end"]) if res_last.data else 0.0
 
-with st.form("shift_form"):
-    # Row 1: Readings & Price
-    col1, col2, col3 = st.columns(3)
+# BIG VISIBLE OPENING READING
+st.markdown(f"""
+    <div class="opening-box">
+        <span style="color: #f1c40f; font-size: 18px;">STATION STATUS</span><br>
+        <span style="color: white; font-size: 26px; font-weight: bold;">Opening Pump Reading: {start_val:,} Liters</span>
+    </div>
+""", unsafe_allow_html=True)
+
+# FORM WITH LIVE UPDATES
+# Note: In Streamlit, values update as soon as the user clicks out of the box or presses Enter
+with st.container():
+    col1, col2 = st.columns(2)
     with col1:
-        st.write(f"**Opening:** {start_val:,} L")
-        end_reading = st.number_input("Closing Reading (L)", value=start_val, step=0.1)
+        end_reading = st.number_input("Current Closing Reading (L)", value=start_val, step=0.1)
     with col2:
-        price_per_liter = st.number_input("Price per Liter (KES)", value=189.0, step=0.5)
-    with col3:
-        liters_sold = end_reading - start_val
-        total_sales_expected = liters_sold * price_per_liter
-        st.markdown(f'<div class="yellow-box">Total Sales<br>KES {total_sales_expected:,.2f}</div>', unsafe_allow_html=True)
+        price_per_liter = st.number_input("Price per Liter (KES)", value=189.0, step=0.1)
 
-    # Row 2: Parallel Payments
-    p_col1, p_col2 = st.columns(2)
-    with p_col1:
-        cash = st.number_input("Total Cash (KES)", min_value=0.0)
-    with p_col2:
-        mpesa = st.number_input("Total M-Pesa (KES)", min_value=0.0)
+    # ACTIVE CALCULATION
+    liters_sold = end_reading - start_val
+    total_sales_expected = liters_sold * price_per_liter
 
-    # Calculation Logic
+    # BIG YELLOW SALES BOX
+    st.markdown(f'<div class="yellow-box">TOTAL SALES: KES {total_sales_expected:,.2f}</div>', unsafe_allow_html=True)
+
+    st.markdown("---")
+    
+    # PARALLEL PAYMENT SECTION
+    pay_col1, pay_col2 = st.columns(2)
+    with pay_col1:
+        cash = st.number_input("Cash in Hand (KES)", min_value=0.0, step=1.0)
+    with pay_col2:
+        mpesa = st.number_input("M-Pesa Total (KES)", min_value=0.0, step=1.0)
+
     actual_collected = cash + mpesa
     difference = actual_collected - total_sales_expected
 
-    # Display Difference
+    # STATUS INDICATOR
     if difference < 0:
-        st.markdown(f'<div class="yellow-box short-warning">SHORTAGE: KES {abs(difference):,.2f}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="yellow-box"><span class="short-text">SHORTAGE: KES {abs(difference):,.2f}</span></div>', unsafe_allow_html=True)
     elif difference > 0:
-        st.markdown(f'<div class="yellow-box" style="color: green !important;">OVERAGE: KES {difference:,.2f}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="yellow-box" style="color: #27ae60 !important;">OVERAGE: KES {difference:,.2f}</div>', unsafe_allow_html=True)
     else:
-        st.markdown('<div class="yellow-box">ACCOUNT BALANCED</div>', unsafe_allow_html=True)
+        st.markdown('<div class="yellow-box" style="color: #27ae60 !important;">ACCOUNT BALANCED ✔</div>', unsafe_allow_html=True)
 
-    submit = st.form_submit_button("VERIFY & SUBMIT SHIFT", use_container_width=True)
-    
-    if submit:
+    st.write("") # Spacer
+    if st.button("VERIFY & SUBMIT SHIFT", use_container_width=True):
         if liters_sold < 0:
-            st.error("Error: Closing reading is lower than opening!")
+            st.error("🚨 ALERT: Closing reading cannot be lower than opening!")
         else:
             supabase.table("shift_logs").insert({
                 "attendant_name": user['full_name'],
@@ -154,10 +173,7 @@ with st.form("shift_form"):
                 "total_collected": actual_collected,
                 "difference": difference
             }).execute()
-            st.success("Shift successfully logged!")
+            st.balloons()
+            st.success("Shift record saved to cloud. Logging out...")
             st.session_state.logged_in = False
             st.rerun()
-        df = pd.DataFrame(history.data)
-        st.dataframe(df[['created_at', 'liters_sold', 'total_collected']])
-    else:
-        st.write("No history found.")
