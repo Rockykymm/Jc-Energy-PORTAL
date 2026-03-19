@@ -45,7 +45,6 @@ def apply_branding():
         [data-testid="stSidebar"] * {{ 
             color: white !important; 
         }}
-        /* Style the radio button text specifically */
         div[data-testid="stSidebarNav"] span {{
             color: white !important;
             font-weight: bold !important;
