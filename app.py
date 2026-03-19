@@ -11,7 +11,7 @@ url = st.secrets["SUPABASE_URL"]
 key = st.secrets["SUPABASE_KEY"]
 supabase = create_client(url, key)
 
-# Sidebar stays open by default
+# FORCE SIDEBAR TO BE EXPANDED
 st.set_page_config(page_title="JC Energy Portal", layout="wide", initial_sidebar_state="expanded")
 
 # 2. BRANDING & CSS
@@ -36,22 +36,25 @@ def apply_branding():
         .opening-box {{ background-color: rgba(255, 255, 255, 0.1); border-left: 5px solid #f1c40f; padding: 15px; margin-bottom: 20px; border-radius: 5px; }}
         label {{ color: white !important; font-weight: bold !important; }}
         .stNumberInput input {{ background-color: white !important; color: black !important; font-size: 18px !important; }}
-        header {{visibility: hidden;}}
         
-        /* SIDEBAR VISIBILITY FIX */
+        /* SIDEBAR FIX: Makes it clearly visible with a border */
         [data-testid="stSidebar"] {{ 
             background-color: #041a04 !important; 
-            border-right: 2px solid #f1c40f; 
+            border-right: 3px solid #f1c40f !important;
+            min-width: 250px !important;
         }}
         [data-testid="stSidebar"] * {{ 
             color: white !important; 
         }}
-        div[data-testid="stSidebarNav"] span {{
+        
+        /* Ensure radio buttons in sidebar are visible */
+        .stRadio label p {{
             color: white !important;
+            font-size: 18px !important;
             font-weight: bold !important;
         }}
 
-        /* Admin/Management Dashboard Visibility */
+        /* Management Dashboard card */
         .admin-card {{
             background-color: white;
             padding: 30px;
@@ -94,20 +97,24 @@ if not st.session_state.logged_in:
 
 # 4. SIDEBAR NAVIGATION
 user = st.session_state.user
-st.sidebar.markdown(f"### Logged in as: \n**{user['full_name']}**")
 
-# Define menu options
-menu = ["📝 Record Shift"]
-if user['full_name'] == "Peter Kimani" or user.get('role') == 'manager':
-    menu.append("👨‍💼 Management")
+# Sidebar Content
+with st.sidebar:
+    st.markdown(f"### 👤 {user['full_name']}")
+    st.write("---")
+    
+    menu = ["📝 Record Shift"]
+    # Check if user is Admin/Manager
+    if user['full_name'] == "Peter Kimani" or user.get('role') == 'manager':
+        menu.append("👨‍💼 Management")
 
-# SET DEFAULT TO 'Record Shift' (Index 0)
-choice = st.sidebar.radio("Navigation Menu", menu, index=0)
-
-st.sidebar.write("---")
-if st.sidebar.button("Logout"):
-    st.session_state.logged_in = False
-    st.rerun()
+    # This radio button lets you switch between the Shift page and Management
+    choice = st.radio("GO TO:", menu, index=0)
+    
+    st.write("---")
+    if st.button("Logout"):
+        st.session_state.logged_in = False
+        st.rerun()
 
 # --- PAGE 1: RECORD SHIFT ---
 if choice == "📝 Record Shift":
@@ -124,6 +131,7 @@ if choice == "📝 Record Shift":
     with col2:
         price_per_liter = st.number_input("Price per Liter (KES)", value=189.0, step=0.1)
 
+    # Calculation logic
     liters_sold = start_val - end_reading
     total_sales_expected = liters_sold * price_per_liter
     
