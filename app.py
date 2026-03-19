@@ -1,3 +1,4 @@
+import time
 import streamlit as st
 from supabase import create_client
 import pandas as pd
@@ -199,9 +200,15 @@ if choice == "📝 Record Shift":
     diff = actual_collected - total_sales_expected
 
     # 4. SUBMISSION
-    if st.button("VERIFY & FINALIZE SHIFT", use_container_width=True):
+    if st.button("FINALIZE SHIFT", use_container_width=True):
+        # 1. CALCULATION LOGIC
+        liters_sold = start_val - end_reading
+        total_sales_expected = liters_sold * price
+        actual_collected = cash + mpesa
+        diff = actual_collected - total_sales_expected
+
         if end_reading > start_val:
-            st.error("🚨 Error: Closing reading cannot be higher than opening! Please check the meter.")
+            st.error("🚨 Error: Closing reading cannot be higher than opening!")
         else:
             with st.spinner("Saving to Cloud..."):
                 supabase.table("shift_logs").insert({
@@ -209,15 +216,23 @@ if choice == "📝 Record Shift":
                     "pump_reading_start": start_val,
                     "pump_reading_end": end_reading, 
                     "liters_sold": liters_sold,
-                    "price_per_ltr": price_per_liter, 
+                    "price_per_ltr": price, 
                     "total_sales": total_sales_expected,
                     "cash": cash, 
                     "till": mpesa, 
                     "difference": diff
                 }).execute()
-                st.success("✅ Shift Successfully Logged!")
+                
+                # 2. THE EXIT SEQUENCE
+                # Show your specific message in a big green success box
+                st.success("✨ THANK YOU, SHIFT OVER!")
+                
+                # Wait 3 seconds so they can read it
+                time.sleep(3)
+                
+                # Reset login status and force refresh to the Login Page
+                st.session_state.logged_in = False
                 st.rerun()
-
 # --- PAGE 2: MANAGEMENT (FULL RESTORED VERSION) ---
 elif choice == "👨‍💼 Management":
     st.markdown('<div class="welcome-text">Business Management Dashboard</div>', unsafe_allow_html=True)
