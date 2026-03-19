@@ -11,9 +11,10 @@ url = st.secrets["SUPABASE_URL"]
 key = st.secrets["SUPABASE_KEY"]
 supabase = create_client(url, key)
 
+# FORCE SIDEBAR OPEN & WIDE LAYOUT
 st.set_page_config(page_title="JC Energy Portal", layout="wide", initial_sidebar_state="expanded")
 
-# 2. BRANDING & CSS (MAXIMUM READABILITY)
+# 2. BRANDING & FULL CSS (SIDEBAR + TABLE + CARDS)
 def apply_branding():
     try:
         img = Image.open("Gemini_Generated_Image_ykd8mjykd8mjykd8.jpg")
@@ -32,39 +33,40 @@ def apply_branding():
         .logo-img {{ max-width: 180px; width: 40%; border-radius: 12px; }}
         .welcome-text {{ color: #f1c40f !important; font-size: 38px !important; font-weight: 800 !important; text-align: center; }}
         
-        /* SIDEBAR: DARK GREEN WITH YELLOW BORDER */
+        /* SIDEBAR: FORCED WHITE TEXT & YELLOW BORDER */
         [data-testid="stSidebar"] {{ 
             background-color: #041a04 !important; 
             border-right: 5px solid #f1c40f !important;
         }}
-        
-        /* SIDEBAR TEXT: FORCED BRIGHT WHITE */
-        [data-testid="stSidebar"] p, 
-        [data-testid="stSidebar"] span, 
-        [data-testid="stSidebar"] label,
-        [data-testid="stSidebar"] .stMarkdown {{
+        [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label {{
             color: #FFFFFF !important;
             font-weight: bold !important;
             font-size: 18px !important;
         }}
-
-        /* RADIO BUTTON TEXT: LARGE & WHITE */
         div[data-testid="stSidebar"] .stRadio label div[data-testid="stMarkdownContainer"] p {{
             color: #FFFFFF !important;
             font-size: 20px !important;
         }}
 
-        /* MANAGEMENT DASHBOARD CARDS: HIGH CONTRAST */
+        /* TABLE READABILITY: YELLOW HEADERS ON DARK GREY */
+        thead tr th {{
+            background-color: #2d3436 !important;
+            color: #f1c40f !important;
+            font-size: 16px !important;
+            font-weight: bold !important;
+        }}
+        tbody tr {{
+            background-color: white !important;
+            color: black !important;
+        }}
+
+        /* MANAGEMENT CARDS */
         .readable-card {{
             background-color: white;
-            padding: 30px;
+            padding: 25px;
             border-radius: 15px;
             color: black !important;
             margin-bottom: 20px;
-        }}
-        .readable-card h2, .readable-card h3, .readable-card p, .readable-card span {{
-            color: black !important;
-            font-weight: bold;
         }}
         
         /* METRIC STYLING */
@@ -103,14 +105,11 @@ with st.sidebar:
     st.markdown("<h2 style='color: #f1c40f; text-align: center;'>NAVIGATION</h2>", unsafe_allow_html=True)
     st.markdown(f"👤 **{user['full_name']}**")
     st.write("---")
-    
     menu = ["📝 Record Shift"]
-    # Check if user is the admin (Peter Kimani) or has a manager role
+    # Admin & Management Check
     if user['full_name'] == "Peter Kimani" or user.get('role') == 'manager':
         menu.append("👨‍💼 Management")
-    
     choice = st.radio("GO TO:", menu, index=0)
-    
     st.write("---")
     if st.button("🚪 Logout", use_container_width=True):
         st.session_state.logged_in = False
@@ -120,7 +119,7 @@ with st.sidebar:
 if choice == "📝 Record Shift":
     st.markdown(f'<div class="welcome-text">Welcome, {user["full_name"]}</div>', unsafe_allow_html=True)
     
-    # Get last closing reading from database
+    # FETCH LAST READING
     res_last = supabase.table("shift_logs").select("pump_reading_end").order("created_at", desc=True).limit(1).execute()
     start_val = float(res_last.data[0]["pump_reading_end"]) if res_last.data else 0.0
 
@@ -140,11 +139,9 @@ if choice == "📝 Record Shift":
     st.markdown(f'<div style="background: #f1c40f; color: black; padding: 20px; border-radius: 12px; text-align: center; font-weight: 900; font-size: 24px; margin: 10px 0;">'
                 f'TOTAL SALES: KES {max(0.0, total_sales_expected):,.2f}</div>', unsafe_allow_html=True)
 
-    pay_col1, pay_col2 = st.columns(2)
-    with pay_col1:
-        cash = st.number_input("Cash Collected (KES)", min_value=0.0)
-    with pay_col2:
-        mpesa = st.number_input("M-Pesa Collected (KES)", min_value=0.0)
+    p1, p2 = st.columns(2)
+    cash = p1.number_input("Cash Collected (KES)", min_value=0.0)
+    mpesa = p2.number_input("Till / M-Pesa (KES)", min_value=0.0)
 
     actual = cash + mpesa
     diff = actual - total_sales_expected
@@ -154,38 +151,64 @@ if choice == "📝 Record Shift":
             st.error("🚨 Error: Closing reading cannot be higher than opening!")
         else:
             supabase.table("shift_logs").insert({
-                "attendant_name": user['full_name'], "pump_reading_start": start_val,
-                "pump_reading_end": end_reading, "liters_sold": liters_sold,
-                "total_collected": actual, "difference": diff
+                "attendant_name": user['full_name'], 
+                "pump_reading_start": start_val,
+                "pump_reading_end": end_reading, 
+                "liters_sold": liters_sold,
+                "price_per_ltr": price_per_liter, 
+                "total_sales": total_sales_expected,
+                "cash": cash, 
+                "till": mpesa, 
+                "difference": diff
             }).execute()
             st.success("Shift Logged Successfully!")
             st.rerun()
 
-# --- PAGE 2: MANAGEMENT (FULL RESTORED VERSION) ---
+# --- PAGE 2: MANAGEMENT (ALL FEATURES RESTORED) ---
 elif choice == "👨‍💼 Management":
     st.markdown('<div class="welcome-text">Management Dashboard</div>', unsafe_allow_html=True)
-    
     tab1, tab2 = st.tabs(["📊 Business Logs", "👥 Staff Management"])
     
     with tab1:
         st.markdown('<div class="readable-card">', unsafe_allow_html=True)
-        st.markdown("### Business Performance")
+        st.markdown("### Business Performance Summary")
         logs_res = supabase.table("shift_logs").select("*").order("created_at", desc=True).execute()
         
         if logs_res.data:
             df = pd.DataFrame(logs_res.data)
             m1, m2, m3 = st.columns(3)
-            m1.metric("Liters Sold", f"{df['liters_sold'].sum():,.1f}")
-            m2.metric("Total Revenue", f"KES {df['total_collected'].sum():,.2f}")
-            m3.metric("Net Difference", f"KES {df['difference'].sum():,.2f}")
+            m1.metric("Total Liters", f"{df['liters_sold'].sum():,.1f} L")
+            m2.metric("Total Collected", f"KES {df['total_sales'].sum():,.2f}")
+            m3.metric("Net Balance", f"KES {df['difference'].sum():,.2f}")
             
             st.write("---")
-            st.markdown("#### All Shift Records")
-            # Format date for readability
+            st.markdown("### Detailed Shift Records")
+            
+            # FORMAT TABLE DATA
             df['created_at'] = pd.to_datetime(df['created_at']).dt.strftime('%Y-%m-%d %H:%M')
-            st.dataframe(df[['created_at', 'attendant_name', 'liters_sold', 'total_collected', 'difference']], use_container_width=True)
+            
+            # AUTOMATED STATUS LOGIC
+            def get_status(d):
+                if d < -1: return f"Shortage (KES {abs(d):,.0f})"
+                if d > 1: return f"Excess (KES {d:,.0f})"
+                return "Balanced"
+            
+            df['Status'] = df['difference'].apply(get_status)
+            
+            # REORDER COLUMNS AS REQUESTED
+            final_df = df[[
+                'created_at', 'attendant_name', 'liters_sold', 
+                'price_per_ltr', 'total_sales', 'cash', 'till', 'Status'
+            ]]
+            
+            final_df.columns = [
+                'Created At', 'Attendant Name', 'Liters Sold', 
+                'Price/Ltr', 'Total Sales', 'Cash', 'Till', 'Shift Status'
+            ]
+            
+            st.table(final_df) # Renders with yellow headers and white body
         else:
-            st.info("No logs found yet.")
+            st.info("No records found in the database.")
         st.markdown('</div>', unsafe_allow_html=True)
 
     with tab2:
@@ -199,18 +222,14 @@ elif choice == "👨‍💼 Management":
                 c1.write(f"👤 **{s['full_name']}** (Work ID: {s['work_id']})")
                 if c2.button("Remove", key=f"rem_{s['id']}"):
                     supabase.table("staff").delete().eq("id", s['id']).execute()
-                    st.success(f"Removed {s['full_name']}")
                     st.rerun()
         
         st.write("---")
         with st.expander("➕ Add New Employee"):
-            new_name = st.text_input("Full Name")
-            new_id = st.text_input("Assign Work ID")
-            if st.button("Save New Staff Member"):
-                if new_name and new_id:
-                    supabase.table("staff").insert({"full_name": new_name, "work_id": new_id}).execute()
-                    st.success(f"Added {new_name}")
+            n_name = st.text_input("Full Name")
+            n_id = st.text_input("Assigned Work ID")
+            if st.button("Save Staff Member"):
+                if n_name and n_id:
+                    supabase.table("staff").insert({"full_name": n_name, "work_id": n_id}).execute()
                     st.rerun()
-                else:
-                    st.warning("Please enter both name and ID.")
         st.markdown('</div>', unsafe_allow_html=True)
