@@ -4,6 +4,7 @@ import pandas as pd
 from PIL import Image
 import io
 import base64
+from datetime import datetime
 
 # 1. DATABASE CONNECTION
 url = st.secrets["SUPABASE_URL"]
@@ -12,7 +13,7 @@ supabase = create_client(url, key)
 
 st.set_page_config(page_title="JC Energy Portal", layout="wide")
 
-# 2. BRANDING & HIGH-VISIBILITY CSS
+# 2. BRANDING & CSS
 def apply_branding():
     try:
         img = Image.open("Gemini_Generated_Image_ykd8mjykd8mjykd8.jpg")
@@ -29,30 +30,14 @@ def apply_branding():
         .stApp {{ background-color: #072a07; }}
         .logo-wrapper {{ display: flex; justify-content: center; padding: 10px 0; }}
         .logo-img {{ max-width: 180px; width: 40%; border-radius: 12px; }}
-        
-        /* Big Bright Welcome */
-        .welcome-text {{ color: #f1c40f !important; font-size: 38px !important; font-weight: 800 !important; text-align: center; }}
-        
-        /* Yellow Boxes for Calculations */
+        .welcome-text {{ color: #f1c40f !important; font-size: 38px !important; font-weight: 800 !important; text-align: center; margin-bottom: 5px; }}
         .yellow-box {{ background-color: #f1c40f; color: black !important; padding: 20px; border-radius: 12px; text-align: center; font-weight: 900; font-size: 24px; margin: 10px 0; }}
-        
-        /* White Column Styling for Admin Visibility */
-        .admin-card {{
-            background-color: white;
-            padding: 25px;
-            border-radius: 15px;
-            color: black !important;
-            margin-bottom: 20px;
-        }}
-        .admin-card h2, .admin-card h3, .admin-card p, .admin-card span {{
-            color: black !important;
-        }}
-
-        /* Opening Reading Visibility */
         .opening-box {{ background-color: rgba(255, 255, 255, 0.1); border-left: 5px solid #f1c40f; padding: 15px; margin-bottom: 20px; border-radius: 5px; }}
-        
         label {{ color: white !important; font-weight: bold !important; }}
+        .stNumberInput input {{ background-color: white !important; color: black !important; font-size: 18px !important; }}
         header {{visibility: hidden;}}
+        /* Sidebar styling */
+        [data-testid="stSidebar"] {{ background-color: #041a04; border-right: 1px solid #f1c40f; }}
         </style>
         {logo_html}
         """,
@@ -81,17 +66,21 @@ if not st.session_state.logged_in:
 # 4. SIDEBAR NAVIGATION
 user = st.session_state.user
 st.sidebar.title("Navigation")
+# Only show Management if the user is Peter or has a manager role
 menu = ["📝 Record Shift"]
-if user['full_name'] == "Peter Kimani":
+if user['full_name'] == "Peter Kimani" or user.get('role') == 'manager':
     menu.append("👨‍💼 Management")
 
 choice = st.sidebar.radio("Go to:", menu)
 
-# --- PAGE 1: RECORD SHIFT (Corrected Math) ---
+if st.sidebar.button("Logout"):
+    st.session_state.logged_in = False
+    st.rerun()
+
+# --- PAGE 1: RECORD SHIFT ---
 if choice == "📝 Record Shift":
     st.markdown(f'<div class="welcome-text">Welcome, {user["full_name"]}</div>', unsafe_allow_html=True)
     
-    # Fetch Opening Stock
     res_last = supabase.table("shift_logs").select("pump_reading_end").order("created_at", desc=True).limit(1).execute()
     start_val = float(res_last.data[0]["pump_reading_end"]) if res_last.data else 0.0
 
@@ -99,21 +88,19 @@ if choice == "📝 Record Shift":
 
     col1, col2 = st.columns(2)
     with col1:
-        end_reading = st.number_input("Closing Reading (L)", value=start_val, step=0.1)
+        end_reading = st.number_input("Current Closing Reading (L)", value=start_val, step=0.1)
     with col2:
-        price_per_liter = st.number_input("Price per Liter (KES)", value=189.0)
+        price_per_liter = st.number_input("Price per Liter (KES)", value=189.0, step=0.1)
 
-    # NEW MATH LOGIC: Fuel is decreasing
-    liters_sold = start_val - end_reading 
+    liters_sold = end_reading - start_val
     total_sales_expected = liters_sold * price_per_liter
-    
-    st.markdown(f'<div class="yellow-box">TOTAL SALES: KES {max(0.0, total_sales_expected):,.2f}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="yellow-box">TOTAL SALES: KES {total_sales_expected:,.2f}</div>', unsafe_allow_html=True)
 
     pay_col1, pay_col2 = st.columns(2)
     with pay_col1:
-        cash = st.number_input("Cash in Hand (KES)", min_value=0.0)
+        cash = st.number_input("Cash Collected (KES)", min_value=0.0)
     with pay_col2:
-        mpesa = st.number_input("M-Pesa Total (KES)", min_value=0.0)
+        mpesa = st.number_input("M-Pesa Collected (KES)", min_value=0.0)
 
     actual = cash + mpesa
     diff = actual - total_sales_expected
@@ -121,7 +108,7 @@ if choice == "📝 Record Shift":
     if diff < 0:
         st.markdown(f'<div class="yellow-box" style="color: #b33939 !important;">SHORTAGE: KES {abs(diff):,.2f}</div>', unsafe_allow_html=True)
     else:
-        st.markdown(f'<div class="yellow-box" style="color: #27ae60 !important;">BALANCED: KES {diff:,.2f}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="yellow-box" style="color: #27ae60 !important;">{"BALANCED" if diff==0 else "OVERAGE"}: KES {diff:,.2f}</div>', unsafe_allow_html=True)
 
     if st.button("VERIFY & SUBMIT SHIFT", use_container_width=True):
         supabase.table("shift_logs").insert({
@@ -132,44 +119,37 @@ if choice == "📝 Record Shift":
         st.success("Shift Logged Successfully!")
         st.rerun()
 
-# --- PAGE 2: MANAGEMENT (Enhanced Visibility & Remove Feature) ---
+# --- PAGE 2: MANAGEMENT ---
 elif choice == "👨‍💼 Management":
     st.markdown('<div class="welcome-text">Management Dashboard</div>', unsafe_allow_html=True)
     
     tab1, tab2 = st.tabs(["📊 Business Logs", "👥 Staff Management"])
     
     with tab1:
-        st.markdown('<div class="admin-card">', unsafe_allow_html=True)
-        st.subheader("Shift History & Profit/Loss")
+        st.subheader("All Shift Records")
         logs_res = supabase.table("shift_logs").select("*").order("created_at", desc=True).execute()
         if logs_res.data:
             df = pd.DataFrame(logs_res.data)
-            # Calculations per person
-            st.write("**Performance Summary:**")
-            summary = df.groupby('attendant_name')[['liters_sold', 'difference']].sum()
-            st.table(summary)
+            # Display Key Stats
+            s1, s2, s3 = st.columns(3)
+            s1.metric("Total Liters Sold", f"{df['liters_sold'].sum():,.1f}")
+            s2.metric("Total Revenue", f"KES {df['total_collected'].sum():,.2f}")
+            s3.metric("Net Shortages", f"KES {df['difference'].sum():,.2f}", delta_color="inverse")
             
-            st.write("**Detailed Logs:**")
-            st.dataframe(df)
-        st.markdown('</div>', unsafe_allow_html=True)
+            st.dataframe(df[['created_at', 'attendant_name', 'liters_sold', 'total_collected', 'difference']], use_container_width=True)
+        else:
+            st.info("No logs found yet.")
 
     with tab2:
-        st.markdown('<div class="admin-card">', unsafe_allow_html=True)
-        st.subheader("Manage Employees")
+        st.subheader("Team Overview")
         staff_res = supabase.table("staff").select("*").execute()
         if staff_res.data:
-            for s in staff_res.data:
-                c1, c2 = st.columns([0.8, 0.2])
-                c1.write(f"**{s['full_name']}** (ID: {s['work_id']})")
-                if c2.button("Remove", key=f"del_{s['id']}"):
-                    supabase.table("staff").delete().eq("id", s['id']).execute()
-                    st.rerun()
+            st.table(pd.DataFrame(staff_res.data)[['full_name', 'work_id']])
         
-        st.write("---")
-        st.write("**Add New Staff**")
-        n_name = st.text_input("Name")
-        n_id = st.text_input("ID")
-        if st.button("Add Employee"):
-            supabase.table("staff").insert({"full_name": n_name, "work_id": n_id}).execute()
-            st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
+        with st.expander("➕ Add New Employee"):
+            new_name = st.text_input("Full Name")
+            new_id = st.text_input("Assign Work ID (e.g. 005)")
+            if st.button("Save New Employee"):
+                supabase.table("staff").insert({"full_name": new_name, "work_id": new_id}).execute()
+                st.success(f"Successfully added {new_name}")
+                st.rerun()
