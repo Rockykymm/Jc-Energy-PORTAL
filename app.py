@@ -11,6 +11,7 @@ url = st.secrets["SUPABASE_URL"]
 key = st.secrets["SUPABASE_KEY"]
 supabase = create_client(url, key)
 
+# This line ensures the side panel starts in the "OPEN" position
 st.set_page_config(page_title="JC Energy Portal", layout="wide", initial_sidebar_state="expanded")
 
 # 2. BRANDING & CSS
@@ -95,13 +96,18 @@ if not st.session_state.logged_in:
 # 4. SIDEBAR NAVIGATION
 user = st.session_state.user
 st.sidebar.markdown(f"### Logged in as: \n**{user['full_name']}**")
-menu = ["📝 Record Shift"]
 
-# Management access check
-if user['full_name'] == "Peter Kimani" or user.get('role') == 'manager':
+# Define menu options
+menu = ["📝 Record Shift"]
+is_admin = (user['full_name'] == "Peter Kimani" or user.get('role') == 'manager')
+
+if is_admin:
     menu.append("👨‍💼 Management")
 
-choice = st.sidebar.radio("Navigation Menu", menu)
+# Logic to default to Management if you are an admin
+default_index = 1 if is_admin else 0
+
+choice = st.sidebar.radio("Navigation Menu", menu, index=default_index)
 
 st.sidebar.write("---")
 if st.sidebar.button("Logout"):
