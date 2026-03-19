@@ -37,29 +37,37 @@ def apply_branding():
         .stNumberInput input {{ background-color: white !important; color: black !important; font-size: 18px !important; }}
         header {{visibility: hidden;}}
         
-        /* SIDEBAR TOGGLE FIX */
-        [data-testid="stSidebar"] {{ background-color: #041a04; border-right: 1px solid #f1c40f; }}
-        
-        /* Forces the "Open Sidebar" arrow to be a visible yellow button at the top left */
-        button[kind="headerNoSpacing"] {{
-            background-color: #f1c40f !important;
-            color: black !important;
-            border-radius: 50% !important;
-            left: 10px !important;
-            top: 10px !important;
-            position: fixed !important;
-            z-index: 999999;
+        /* SIDEBAR VISIBILITY FIX */
+        [data-testid="stSidebar"] {{ 
+            background-color: #041a04 !important; 
+            border-right: 2px solid #f1c40f; 
+        }}
+        [data-testid="stSidebar"] * {{ 
+            color: white !important; 
+        }}
+        /* Style the radio button text specifically */
+        div[data-testid="stSidebarNav"] span {{
+            color: white !important;
+            font-weight: bold !important;
         }}
 
-        /* Admin/Management Visibility (White columns) */
+        /* Admin/Management Dashboard Visibility (The White Column) */
         .admin-card {{
             background-color: white;
-            padding: 20px;
+            padding: 30px;
             border-radius: 15px;
             color: black !important;
-            margin-bottom: 20px;
+            margin-top: 20px;
         }}
-        .admin-card * {{ color: black !important; }}
+        .admin-card h2, .admin-card h3, .admin-card p, .admin-card span {{ 
+            color: black !important; 
+        }}
+        
+        /* Metrics inside white card */
+        [data-testid="stMetricValue"] {{
+            color: #072a07 !important;
+            font-weight: 800 !important;
+        }}
         </style>
         {logo_html}
         """,
@@ -87,18 +95,21 @@ if not st.session_state.logged_in:
 
 # 4. SIDEBAR NAVIGATION
 user = st.session_state.user
-st.sidebar.title("Navigation")
+st.sidebar.markdown(f"### Logged in as: \n**{user['full_name']}**")
 menu = ["📝 Record Shift"]
+
+# Management access check
 if user['full_name'] == "Peter Kimani" or user.get('role') == 'manager':
     menu.append("👨‍💼 Management")
 
-choice = st.sidebar.radio("Go to:", menu)
+choice = st.sidebar.radio("Navigation Menu", menu)
 
+st.sidebar.write("---")
 if st.sidebar.button("Logout"):
     st.session_state.logged_in = False
     st.rerun()
 
-# --- PAGE 1: RECORD SHIFT (Corrected Math) ---
+# --- PAGE 1: RECORD SHIFT ---
 if choice == "📝 Record Shift":
     st.markdown(f'<div class="welcome-text">Welcome, {user["full_name"]}</div>', unsafe_allow_html=True)
     
@@ -113,7 +124,6 @@ if choice == "📝 Record Shift":
     with col2:
         price_per_liter = st.number_input("Price per Liter (KES)", value=189.0, step=0.1)
 
-    # MATH LOGIC: Opening - Closing = Liters Sold
     liters_sold = start_val - end_reading
     total_sales_expected = liters_sold * price_per_liter
     
@@ -153,17 +163,17 @@ elif choice == "👨‍💼 Management":
     
     with tab1:
         st.markdown('<div class="admin-card">', unsafe_allow_html=True)
-        st.subheader("All Shift Records")
+        st.markdown("### All Shift Records")
         logs_res = supabase.table("shift_logs").select("*").order("created_at", desc=True).execute()
         if logs_res.data:
             df = pd.DataFrame(logs_res.data)
             
-            # Key Stats
             s1, s2, s3 = st.columns(3)
             s1.metric("Total Liters Sold", f"{df['liters_sold'].sum():,.1f}")
             s2.metric("Total Revenue", f"KES {df['total_collected'].sum():,.2f}")
             s3.metric("Net Shortages", f"KES {df['difference'].sum():,.2f}")
             
+            st.write("---")
             st.dataframe(df[['created_at', 'attendant_name', 'liters_sold', 'total_collected', 'difference']], use_container_width=True)
         else:
             st.info("No logs found yet.")
@@ -171,7 +181,7 @@ elif choice == "👨‍💼 Management":
 
     with tab2:
         st.markdown('<div class="admin-card">', unsafe_allow_html=True)
-        st.subheader("Team Overview")
+        st.markdown("### Team Overview")
         staff_res = supabase.table("staff").select("*").execute()
         if staff_res.data:
             for s in staff_res.data:
@@ -186,6 +196,6 @@ elif choice == "👨‍💼 Management":
             new_id = st.text_input("Assign Work ID")
             if st.button("Save New Employee"):
                 supabase.table("staff").insert({"full_name": new_name, "work_id": new_id}).execute()
-                st.success(f"Successfully added {new_name}")
+                st.success(f"Added {new_name}")
                 st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
