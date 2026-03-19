@@ -11,7 +11,7 @@ url = st.secrets["SUPABASE_URL"]
 key = st.secrets["SUPABASE_KEY"]
 supabase = create_client(url, key)
 
-# This line ensures the side panel starts in the "OPEN" position
+# Sidebar stays open by default
 st.set_page_config(page_title="JC Energy Portal", layout="wide", initial_sidebar_state="expanded")
 
 # 2. BRANDING & CSS
@@ -51,7 +51,7 @@ def apply_branding():
             font-weight: bold !important;
         }}
 
-        /* Admin/Management Dashboard Visibility (The White Column) */
+        /* Admin/Management Dashboard Visibility */
         .admin-card {{
             background-color: white;
             padding: 30px;
@@ -63,7 +63,6 @@ def apply_branding():
             color: black !important; 
         }}
         
-        /* Metrics inside white card */
         [data-testid="stMetricValue"] {{
             color: #072a07 !important;
             font-weight: 800 !important;
@@ -99,15 +98,11 @@ st.sidebar.markdown(f"### Logged in as: \n**{user['full_name']}**")
 
 # Define menu options
 menu = ["📝 Record Shift"]
-is_admin = (user['full_name'] == "Peter Kimani" or user.get('role') == 'manager')
-
-if is_admin:
+if user['full_name'] == "Peter Kimani" or user.get('role') == 'manager':
     menu.append("👨‍💼 Management")
 
-# Logic to default to Management if you are an admin
-default_index = 1 if is_admin else 0
-
-choice = st.sidebar.radio("Navigation Menu", menu, index=default_index)
+# SET DEFAULT TO 'Record Shift' (Index 0)
+choice = st.sidebar.radio("Navigation Menu", menu, index=0)
 
 st.sidebar.write("---")
 if st.sidebar.button("Logout"):
@@ -172,12 +167,10 @@ elif choice == "👨‍💼 Management":
         logs_res = supabase.table("shift_logs").select("*").order("created_at", desc=True).execute()
         if logs_res.data:
             df = pd.DataFrame(logs_res.data)
-            
             s1, s2, s3 = st.columns(3)
             s1.metric("Total Liters Sold", f"{df['liters_sold'].sum():,.1f}")
             s2.metric("Total Revenue", f"KES {df['total_collected'].sum():,.2f}")
             s3.metric("Net Shortages", f"KES {df['difference'].sum():,.2f}")
-            
             st.write("---")
             st.dataframe(df[['created_at', 'attendant_name', 'liters_sold', 'total_collected', 'difference']], use_container_width=True)
         else:
