@@ -56,23 +56,33 @@ def apply_branding():
             font-size: 20px !important;
         }}
 
-        /* TABLE STYLING: YELLOW HEADERS & NO-WRAP COLUMNS */
+       /* TABLE STYLING: DARK ROWS FOR WHITE TEXT VISIBILITY */
         thead tr th {{
-            background-color: #2d3436 !important;
-            color: #f1c40f !important;
+            background-color: #f1c40f !important; /* Yellow Header */
+            color: #072a07 !important; /* Dark Green Text on Header */
             font-size: 15px !important;
             white-space: nowrap !important;
         }}
+        
+        /* This makes the rows dark so your white text stands out */
         tbody tr td {{
-            background-color: white !important;
-            color: black !important;
+            background-color: #041a04 !important; /* Dark Green background */
+            color: #FFFFFF !important; /* Forced White Text */
             white-space: nowrap !important;
             font-weight: 500;
+            border-bottom: 1px solid #1e3d1e !important;
+        }}
+
+        /* Subtle stripe for row separation */
+        tbody tr:nth-child(even) {{
+            background-color: #072a07 !important;
         }}
         
         .stTable {{
             overflow-x: auto;
             display: block;
+            border: 1px solid #f1c40f !important;
+            border-radius: 8px;
         }}
 
         /* MANAGEMENT DASHBOARD CARDS (Ensures text inside stays black) */
