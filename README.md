@@ -1,6 +1,7 @@
 ⛽ JC Energy - Fuel Management & Staff Portal A cloud-native, full-stack ERP solution built to automate fuel inventory tracking, sales reconciliation, and staff management for petrol stations.
 
-🚀 Live Demo View Live Application
+### 🚀 Live Demo
+[View Live Application](https://jc-energy-app-oggcah2jnvmumtjhexrxpd.streamlit.app/)
 
 🛠️ Tech Stack Front-end: Python + Streamlit (Custom CSS branding for high-contrast visibility)
 
