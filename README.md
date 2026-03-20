@@ -4,8 +4,8 @@
 A cloud-native, full-stack ERP solution built to automate fuel inventory tracking, sales reconciliation, and staff management for petrol stations.
 
 
-🚀 Live Demo
-View Live Application
+<img width="1366" height="768" alt="image" src="https://github.com/user-attachments/assets/94692f03-ab92-4296-8776-9f031bb07c58" />
+
 
 
 
