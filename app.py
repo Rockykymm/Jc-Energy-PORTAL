@@ -224,54 +224,70 @@ elif choice == "👨‍💼 Management":
     
     tab1, tab2 = st.tabs(["📊 Sales & Logs", "👤 Team Management"])
     
-    with tab1:
-        st.markdown('<div class="readable-card">', unsafe_allow_html=True)
-        st.markdown("### Performance Overview")
-        
-        logs_res = supabase.table("shift_logs").select("*").order("created_at", desc=True).execute()
-        
-        if logs_res.data:
-            df = pd.DataFrame(logs_res.data)
-            
-            df['created_at'] = pd.to_datetime(df['created_at']).dt.strftime('%Y-%m-%d %H:%M')
-            
-            def get_status(val):
-                if val < -5: 
-                    return f"🔴 Shortage (KES {abs(val):,.0f})"
-                if val > 5: 
-                    return f"🟢 Excess (KES {val:,.0f})"
-                return "⚪ Balanced"
-            
-            df['Shift Status'] = df['difference'].apply(get_status)
-
-            m1, m2, m3 = st.columns(3)
-            m1.metric("Total Volume", f"{df['liters_sold'].sum():,.1f} L")
-            m2.metric("Total Revenue", f"KES {df['total_sales'].sum():,.2f}")
-            m3.metric("Net Balance", f"KES {df['difference'].sum():,.2f}")
-            
-            st.write("---")
-            st.markdown("### All Shift Records")
-            
-            display_df = df[[
-                'created_at', 'attendant_name', 
-                'pump_reading_start', 'pump_reading_end',
-                'meter_reading_start', 'meter_reading_end',
-                'liters_sold', 'total_sales', 'cash', 'till', 'Shift Status'
-            ]] 
-            
-            display_df.columns = [
-                'Date/Time', 'Attendant', 
-                'Tank Start', 'Tank End',
-                'Mtr Start', 'Mtr End',
-                'Liters Sold', 'Expected Revenue', 'Cash', 'M-Pesa', 'Status'
-            ]
-            
-            st.dataframe(display_df, use_container_width=True)
-        else:
-            st.info("No sales records found in the database yet.")
-        
-        st.markdown('</div>', unsafe_allow_html=True)
-
+    st.markdown(
+    f"""
+    <style>
+    .stApp {{ background-color: #072a07; }}
+    .logo-wrapper {{ display: flex; justify-content: center; padding: 10px 0; }}
+    .logo-img {{ max-width: 180px; width: 40%; border-radius: 12px; }}
+    .welcome-text {{ color: #f1c40f !important; font-size: 38px !important; font-weight: 800 !important; text-align: center; margin-bottom: 20px; }}
+    
+    [data-testid="stSidebar"] {{ 
+        background-color: #041a04 !important; 
+        border-right: 5px solid #f1c40f !important;
+        min-width: 250px !important;
+    }}
+    [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label {{
+        color: #FFFFFF !important;
+        font-weight: bold !important;
+        font-size: 18px !important;
+    }}
+    
+    /* MANAGEMENT PAGE: WHITE BACKGROUND */
+    [data-testid="stTabs"] {{
+        background-color: white !important;
+        padding: 30px !important;
+        border-radius: 15px !important;
+    }}
+    
+    /* TABLE STYLING: WHITE BG + BLACK TEXT */
+    thead tr th {{
+        background-color: #f1c40f !important;
+        color: #072a07 !important;
+        font-weight: bold !important;
+    }}
+    
+    tbody tr td {{
+        background-color: #FFFFFF !important;
+        color: #000000 !important;
+        padding: 12px 8px !important;
+    }}
+    
+    tbody tr:nth-child(even) {{
+        background-color: #F5F5F5 !important;
+    }}
+    
+    /* CARDS */
+    .readable-card {{
+        background-color: white;
+        padding: 30px;
+        border-radius: 15px;
+        color: black !important;
+    }}
+    .readable-card h2, .readable-card h3, .readable-card p {{
+        color: black !important;
+    }}
+    
+    /* METRICS */
+    [data-testid="stMetricValue"] {{
+        color: #072a07 !important;
+        font-weight: 900 !important;
+    }}
+    </style>
+    {logo_html}
+    """,
+    unsafe_allow_html=True
+)
     with tab2:
         st.markdown('<div class="readable-card">', unsafe_allow_html=True)
         st.markdown("### Active Staff Members")
