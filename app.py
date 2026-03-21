@@ -238,16 +238,16 @@ if choice == "📝 Record Shift":
             "difference": diff
         }).execute()
                 
-                # 2. THE EXIT SEQUENCE
-                # Show your specific message in a big green success box
-                st.success("✨ THANK YOU, SHIFT OVER!")
+        # 2. THE EXIT SEQUENCE
+        # Show your specific message in a big green success box
+        st.success("✨ THANK YOU, SHIFT OVER!")
                 
-                # Wait 3 seconds so they can read it
-                time.sleep(3)
+        # Wait 3 seconds so they can read it
+        time.sleep(3)
                 
-                # Reset login status and force refresh to the Login Page
-                st.session_state.logged_in = False
-                st.rerun()
+        # Reset login status and force refresh to the Login Page
+        st.session_state.logged_in = False
+        st.rerun()
 # --- PAGE 2: MANAGEMENT (FULL RESTORED VERSION) ---
 elif choice == "👨‍💼 Management":
     st.markdown('<div class="welcome-text">Business Management Dashboard</div>', unsafe_allow_html=True)
