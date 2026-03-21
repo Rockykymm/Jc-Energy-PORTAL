@@ -1,4 +1,3 @@
- url=https://github.com/Rockykymm/Jc-Energy-PORTAL/blob/1c6ddae618576be6fe80ff915c748cb1fe3ab370/app.py
 import time
 import streamlit as st
 from supabase import create_client
