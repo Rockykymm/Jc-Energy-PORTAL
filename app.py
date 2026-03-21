@@ -1,3 +1,21 @@
+import streamlit as st
+
+# This MUST be the first streamlit command in the file
+st.set_page_config(
+    page_title="JC Energy Portal", 
+    page_icon="static/logo.png",
+    layout="wide"
+)
+
+# This is the "magic" link that tells your phone to show the 'Install' button
+st.markdown(
+    """
+    <link rel="manifest" href="app/static/manifest.json">
+    """,
+    unsafe_allow_html=True
+)
+
+# ...
 import time
 import streamlit as st
 from supabase import create_client
