@@ -20,30 +20,34 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 3. BRANDING & CSS
-# Move these to the top, NOT inside a function
+# --- 3. BRANDING & CSS ---
+# This must be at the top level so all pages can see it
 logo_html = "<h1 style='text-align: center; color: #f1c40f;'>JC ENERGY</h1>"
 
-def apply_branding():
-    # You can keep the image logic here if you want, 
-    # but defining logo_html above fixes the crash.
-    pass
-    st.markdown("<h3 style='text-align: center; color: white;'>🔐 Staff Portal Login</h3>", unsafe_allow_html=True)
+st.markdown(f"""
+    <style>
+    .stApp {{ background-color: #072a07; }}
+    .welcome-text {{ color: #f1c40f !important; font-size: 38px !important; font-weight: 800 !important; text-align: center; }}
+    [data-testid="stSidebar"] {{ background-color: #041a04 !important; border-right: 5px solid #f1c40f !important; }}
+    </style>
+    {logo_html}
+    """, unsafe_allow_html=True)
 
+# 🔐 LOGIN SECTION (This must be OUTSIDE any function)
+if not st.session_state.get('logged_in'):
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.markdown("<h3 style='text-align: center; color: white;'>🔐 Staff Portal Login</h3>", unsafe_allow_html=True)
         work_id = st.text_input("Enter Work ID", type="password")
-
         if st.button("Access System", use_container_width=True):
-
             res = supabase.table("staff").select("*").eq("work_id", work_id).execute()
-
             if res.data:
-
                 st.session_state.logged_in = True
-
                 st.session_state.user = res.data[0]
-
                 st.rerun()
-
+            else:
+                st.error("Invalid Work ID.")
+    st.stop()
             else:
 
                 st.error("Invalid Work ID. Please contact Peter Kimani.")
