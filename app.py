@@ -286,7 +286,26 @@ elif choice == "👨‍💼 Management":
                 'Price/Ltr', 'Total Sales', 'Cash', 'Till (M-Pesa)', 'Shift Status'
             ]
             
-            # Display Table
+           # --- TARGETED TABLE STYLING ---
+    st.markdown("""
+        <style>
+        [data-testid="stDataFrame"] thead tr th {
+            background-color: #f1c40f !important;
+            color: #072a07 !important;
+            font-weight: bold !important;
+        }
+        [data-testid="stDataFrame"] tbody tr td {
+            background-color: #FFFFFF !important;
+            color: #000000 !important;
+        }
+        [data-testid="stDataFrame"] tbody tr:nth-child(even) {
+            background-color: #F5F5F5 !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+    
+    # Use st.dataframe for the clean white-row look
+    st.dataframe(display_df, use_container_width=True, hide_index=True)
             st.table(display_df)
         else:
             st.info("No sales records found in the database yet.")
