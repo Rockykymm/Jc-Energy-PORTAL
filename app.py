@@ -191,19 +191,81 @@ with st.sidebar:
 if choice == "📝 Record Shift":
     st.markdown(f'<div class="welcome-text">Welcome, {user["full_name"]}</div>', unsafe_allow_html=True)
     
-    # 1. GET OPENING READINGS (LITRES & METER)
-    res_last = supabase.table("shift_logs").select("pump_reading_end", "meter_reading_end").order("created_at", desc=True).limit(1).execute()
+    # 1. FETCH PREVIOUS ENDINGS
+    res_last = supabase.table("shift_logs").select("*").order("created_at", desc=True).limit(1).execute()
     
-    start_val = float(res_last.data[0]["pump_reading_end"]) if res_last.data else 0.0
-    start_mtr = float(res_last.data[0]["meter_reading_end"]) if res_last.data else 0.0
+    prev_tank_end = float(res_last.data[0]["pump_reading_end"]) if res_last.data else 0.0
+    prev_mtr_end = float(res_last.data[0]["meter_reading_end"]) if res_last.data else 0.0
 
-    st.markdown(f'''
-        <div style="background: rgba(255,255,255,0.1); border-left: 5px solid #f1c40f; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-            <span style="color: #f1c40f; font-weight: bold;">STATION STATUS</span><br>
-            <span style="color: white; font-size: 20px;">Opening Litres: {start_val:,.1f} L</span><br>
-            <span style="color: white; font-size: 20px;">Opening Meter: {start_mtr:,.1f} Mtr</span>
-        </div>''', unsafe_allow_html=True)
+    # Check if a Tank Reading (Dipstick) was already recorded today
+    today_str = datetime.now().strftime('%Y-%m-%d')
+    # We look for any entry today where the tank was actually adjusted
+    tank_already_done = any(pd.to_datetime(d['created_at']).strftime('%Y-%m-%d') == today_str for d in res_last.data)
 
+    # 2. TANK SECTION (Dipstick - Locked after first entry of the day)
+    with st.expander("📊 DAILY TANK DIPSTICK (6:00 AM ONLY)", expanded=not tank_already_done):
+        if tank_already_done:
+            st.success("✅ Today's 6 AM Dipstick reading is already recorded.")
+            tank_start = prev_tank_end
+            tank_end = prev_tank_end
+        else:
+            st.warning("🌅 Please enter the 6 AM cold-fuel dipstick readings.")
+            col_t1, col_t2 = st.columns(2)
+            tank_start = col_t1.number_input("Opening Tank (L)", value=prev_tank_end)
+            tank_end = col_t2.number_input("Closing Tank (L) [Dipstick]", value=prev_tank_end)
+
+    st.write("---")
+
+    # 3. METER SECTION (The primary sales driver)
+    st.subheader("⛽ Shift Meter Readings")
+    col_m1, col_m2, col_p = st.columns(3)
+    with col_m1:
+        # Meter Start is always the previous shift's End (Locked for accuracy)
+        mtr_start = st.number_input("Meter Start (L)", value=prev_mtr_end, disabled=True)
+    with col_m2:
+        mtr_end = st.number_input("Meter End (L)", min_value=mtr_start, step=0.1)
+    with col_p:
+        price = st.number_input("Price (KES/L)", value=189.0, step=0.1)
+
+    # 4. CALCULATIONS
+    liters_sold = mtr_end - mtr_start
+    total_sales_expected = liters_sold * price
+    
+    st.markdown(f'<div style="background: #f1c40f; color: black; padding: 20px; border-radius: 10px; text-align: center; font-weight: 800; font-size: 24px; margin: 15px 0; border: 2px solid white;">'
+                f'EXPECTED REVENUE: KES {total_sales_expected:,.2f}</div>', unsafe_allow_html=True)
+
+    c1, c2 = st.columns(2)
+    cash = c1.number_input("Total Cash Collected (KES)", min_value=0.0)
+    mpesa = c2.number_input("Total M-Pesa / Till (KES)", min_value=0.0)
+
+    # 5. FINAL SUBMISSION
+    if st.button("FINALIZE SHIFT", use_container_width=True):
+        actual_total = cash + mpesa
+        diff = actual_total - total_sales_expected
+
+        if mtr_end < mtr_start:
+            st.error("🚨 Error: Closing meter cannot be lower than opening!")
+        else:
+            with st.spinner("Recording Shift..."):
+                try:
+                    supabase.table("shift_logs").insert({
+                        "attendant_name": user['full_name'], 
+                        "pump_reading_start": tank_start,
+                        "pump_reading_end": tank_end, 
+                        "meter_reading_start": mtr_start,
+                        "meter_reading_end": mtr_end,
+                        "liters_sold": liters_sold,
+                        "price_per_ltr": price, 
+                        "total_sales": total_sales_expected,
+                        "cash": cash, "till": mpesa, "difference": diff
+                    }).execute()
+                    
+                    st.success("✨ SHIFT SUCCESSFULLY RECORDED!")
+                    time.sleep(2)
+                    st.session_state.logged_in = False
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Database Error: {e}")
     # 2. INPUT DATA
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -254,6 +316,28 @@ if choice == "📝 Record Shift":
                 st.session_state.logged_in = False
                 st.rerun()
 # --- PAGE 2: MANAGEMENT (FULL RESTORED VERSION) ---
+# --- DAILY PERFORMANCE SUMMARY (MANAGEMENT ONLY) ---
+    if user['full_name'] == "Peter Kimani" or user.get('role') == 'manager':
+        # Filter for today's data to calculate summaries
+        today_date = datetime.now().date()
+        df['created_date'] = pd.to_datetime(df['created_at']).dt.date
+        today_df = df[df['created_date'] == today_date]
+
+        st.markdown("### 📈 Today's Station Performance")
+        m1, m2, m3 = st.columns(3)
+        
+        total_rev = today_df['total_sales'].sum()
+        total_ltrs = today_df['liters_sold'].sum()
+        net_bal = today_df['difference'].sum()
+
+        m1.metric("Total Revenue", f"KES {total_rev:,.2f}")
+        m2.metric("Total Liters (Meter)", f"{total_ltrs:,.1f} L")
+        
+        # Shows Green for Excess, Red for Shortage
+        bal_color = "normal" if net_bal >= 0 else "inverse"
+        m3.metric("Net Balance", f"KES {net_bal:,.2f}", delta=net_bal, delta_color=bal_color)
+        
+        st.write("---")
 elif choice == "👨‍💼 Management":
     st.markdown('<div class="welcome-text">Business Management Dashboard</div>', unsafe_allow_html=True)
     
