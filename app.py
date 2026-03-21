@@ -202,12 +202,13 @@ if choice == "📝 Record Shift":
                 f'<span style="color: white; font-size: 20px;">Opening Litres: {start_val:,.1f} L</span><br>'
                 f'<span style="color: white; font-size: 20px;">Opening Meter: {start_mtr:,.1f} Mtr</span></div>', unsafe_allow_html=True)
     # 2. INPUT DATA
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     with col1:
-        end_reading = st.number_input("Closing Pump Reading (L)", value=start_val, step=0.1)
+        end_reading = st.number_input("Closing Litres (L)", value=start_val, step=0.1)
     with col2:
-        price_per_liter = st.number_input("Current Price per Liter (KES)", value=189.0, step=0.1)
-
+        end_mtr = st.number_input("Closing Meter (Mtr)", value=start_mtr, step=0.1)
+    with col3:
+        price_per_liter = st.number_input("Price (KES/L)", value=189.0, step=0.1)
     # 3. CALCULATIONS
     liters_sold = start_val - end_reading
     total_sales_expected = liters_sold * price_per_liter
