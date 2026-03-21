@@ -21,16 +21,13 @@ st.set_page_config(
 )
 
 # 3. BRANDING & CSS
-def apply_branding():
-    try:
-        img = Image.open("Gemini_Generated_Image_ykd8mjykd8mjykd8.jpg")
-        buffered = io.BytesIO()
-        img.save(buffered, format="JPEG", quality=100)
-        img_str = base64.b64encode(buffered.getvalue()).decode()
-        logo_html = f'<div class="logo-wrapper"><img src="data:image/jpeg;base64,{img_str}" class="logo-img"></div>'
-    except:
-        logo_html = "<h1 style='text-align: center; color: #f1c40f;'>JC ENERGY</h1>"
+# Move these to the top, NOT inside a function
+logo_html = "<h1 style='text-align: center; color: #f1c40f;'>JC ENERGY</h1>"
 
+def apply_branding():
+    # You can keep the image logic here if you want, 
+    # but defining logo_html above fixes the crash.
+    pass
     st.markdown("<h3 style='text-align: center; color: white;'>🔐 Staff Portal Login</h3>", unsafe_allow_html=True)
 
         work_id = st.text_input("Enter Work ID", type="password")
