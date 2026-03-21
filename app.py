@@ -608,10 +608,55 @@ elif choice == "👤 Management":
     with tab1:
         st.markdown('<div class="readable-card">', unsafe_allow_html=True)
         st.markdown("### Performance Overview")
+        
+        # 1. FETCH DATA
         logs_res = supabase.table("shift_logs").select("*").order("created_at", desc=True).execute()
         
         if logs_res.data:
             df = pd.DataFrame(logs_res.data)
+            
+            # --- CRASH PROTECTION: Ensure columns exist ---
+            req_cols = ['total_sales', 'liters_sold', 'difference', 'cash', 'till', 'pump_reading_start', 'pump_reading_end']
+            for c in req_cols:
+                if c not in df.columns: df[c] = 0.0
+
+            # 2. SUMMARY METRICS
+            m1, m2, m3 = st.columns(3)
+            m1.metric("Total Volume", f"{df['liters_sold'].sum():,.1f} L")
+            m2.metric("Total Revenue", f"KES {df['total_sales'].sum():,.2f}")
+            m3.metric("Net Balance", f"KES {df['difference'].sum():,.2f}")
+            
+            st.write("---")
+            st.markdown("### All Shift Records (Detailed View)")
+            
+            # 3. FORMAT DATA
+            df['created_at'] = pd.to_datetime(df['created_at']).dt.strftime('%Y-%m-%d %H:%M')
+            
+            def get_status(val):
+                if val < -5: return f"🔴 Shortage (KES {abs(val):,.0f})"
+                if val > 5: return f"🟢 Excess (KES {val:,.0f})"
+                return "⚪ Balanced"
+            df['Shift Status'] = df['difference'].apply(get_status)
+
+            # 4. SELECT COLUMNS FOR DISPLAY
+            display_df = df[[
+                'created_at', 'attendant_name', 
+                'pump_reading_start', 'pump_reading_end', # Dipstick Logs
+                'meter_reading_start', 'meter_reading_end', 
+                'liters_sold', 'total_sales', 'cash', 'till', 'Shift Status'
+            ]]
+            
+            # 5. ADD THE "WORDS" (Labels)
+            display_df.columns = [
+                'Date/Time', 'Attendant', 
+                'Tank Opening (L)', 'Tank Closing (L)', # Labels for Manager
+                'Mtr Start', 'Mtr End', 
+                'Liters Sold', 'Expected KES', 'Cash', 'M-Pesa', 'Status'
+            ]
+            
+            st.dataframe(display_df, use_container_width=True)
+        else:
+            st.info("No logs found in the database yet.")
             
             # Formatting for display
             df['created_at'] = pd.to_datetime(df['created_at']).dt.strftime('%Y-%m-%d %H:%M')
