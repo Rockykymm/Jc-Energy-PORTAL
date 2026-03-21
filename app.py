@@ -291,11 +291,24 @@ elif choice == "👨‍💼 Management":
             
             df['Shift Status'] = df['difference'].apply(get_status)
             
-            # SELECT THE 8 SPECIFIC COLUMNS
+            # SELECT THE 10 SPECIFIC COLUMNS (Including the new Meter data)
             display_df = df[[
-                'created_at', 'attendant_name', 'liters_sold', 
-                'price_per_ltr', 'total_sales', 'cash', 'till', 'Shift Status'
+                'created_at', 'attendant_name', 
+                'pump_reading_start', 'pump_reading_end',
+                'meter_reading_start', 'meter_reading_end',
+                'liters_sold', 'total_sales', 'cash', 'till', 'Shift Status'
             ]]
+            
+            # Give the columns clean, readable names for the table
+            display_df.columns = [
+                'Date/Time', 'Attendant', 
+                'Tank Start', 'Tank End',
+                'Mtr Start', 'Mtr End',
+                'Liters Sold', 'Expected Revenue', 'Cash', 'M-Pesa', 'Status'
+            ]
+            
+            # Display the updated table
+            st.table(display_df)
             
             # Rename for display
             display_df.columns = [
