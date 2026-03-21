@@ -770,20 +770,24 @@ elif choice == "👤 Management":
                 'Liters Sold', 'Expected Revenue', 'Cash', 'M-Pesa', 'Status'
             ]
             
-            # Display the updated table
-            st.table(display_df)
+            if logs_res.data:
+            df = pd.DataFrame(logs_res.data)
             
-            # Rename for display
+            # ... (your formatting and status logic here) ...
+
+            # SELECT AND RENAME COLUMNS
+            display_df = df[['created_at', 'attendant_name', 'liters_sold', 'total_sales', 'cash', 'till', 'Shift Status']]
             display_df.columns = [
                 'Date/Time', 'Attendant', 'Liters Sold', 
-                'Price/Ltr', 'Total Sales', 'Cash', 'Till (M-Pesa)', 'Shift Status'
+                'Total Sales', 'Cash', 'Till (M-Pesa)', 'Shift Status'
             ]
             
-            # Display Table
+            # Display the table INSIDE the if block
             st.table(display_df)
+            st.markdown('</div>', unsafe_allow_html=True)
         else:
+            # Now this else is correctly attached to 'if logs_res.data:'
             st.info("No sales records found in the database yet.")
-        st.markdown('</div>', unsafe_allow_html=True)
 
     with tab2:
         st.markdown('<div class="readable-card">', unsafe_allow_html=True)
