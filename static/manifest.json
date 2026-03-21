@@ -1,0 +1,15 @@
+{
+  "short_name": "JC Energy",
+  "name": "JC Energy Fuel Portal",
+  "icons": [
+    {
+      "src": "app/static/logo.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#01411C",
+  "background_color": "#ffffff"
+}
