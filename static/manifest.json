@@ -3,7 +3,8 @@
   "name": "JC Energy Fuel Portal",
   "icons": [
     {
-      "src": "app/static/logo.png",
+      "src": "/app/static/logo.png"
+      ,
       "sizes": "192x192 512x512",
       "type": "image/png"
     }
