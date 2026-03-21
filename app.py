@@ -599,33 +599,11 @@ if choice == "📝 Record Shift":
                 time.sleep(3)
                 st.session_state.logged_in = False
                 st.rerun()
-# --- PAGE 2: MANAGEMENT (FULL RESTORED VERSION) ---
-# --- DAILY PERFORMANCE SUMMARY (MANAGEMENT ONLY) ---
-    if user['full_name'] == "Peter Kimani" or user.get('role') == 'manager':
-        # Filter for today's data to calculate summaries
-        today_date = datetime.now().date()
-        df['created_date'] = pd.to_datetime(df['created_at']).dt.date
-        today_df = df[df['created_date'] == today_date]
-
-        st.markdown("### 📈 Today's Station Performance")
-        m1, m2, m3 = st.columns(3)
-        
-        total_rev = today_df['total_sales'].sum()
-        total_ltrs = today_df['liters_sold'].sum()
-        net_bal = today_df['difference'].sum()
-
-        m1.metric("Total Revenue", f"KES {total_rev:,.2f}")
-        m2.metric("Total Liters (Meter)", f"{total_ltrs:,.1f} L")
-        
-        # Shows Green for Excess, Red for Shortage
-        bal_color = "normal" if net_bal >= 0 else "inverse"
-        m3.metric("Net Balance", f"KES {net_bal:,.2f}", delta=net_bal, delta_color=bal_color)
-        
-        st.write("---")
-elif choice == "👨‍💼 Management":
+# --- PAGE 2: MANAGEMENT ---
+elif choice == "👤 Management":
     st.markdown('<div class="welcome-text">Business Management Dashboard</div>', unsafe_allow_html=True)
     
-    tab1, tab2 = st.tabs(["📊 Sales & Logs", "👥 Team Management"])
+    tab1, tab2 = st.tabs(["📊 Sales & Logs", "👤 Team Management"])
     
     with tab1:
         st.markdown('<div class="readable-card">', unsafe_allow_html=True)
@@ -635,6 +613,42 @@ elif choice == "👨‍💼 Management":
         if logs_res.data:
             df = pd.DataFrame(logs_res.data)
             
+            # Formatting for display
+            df['created_at'] = pd.to_datetime(df['created_at']).dt.strftime('%Y-%m-%d %H:%M')
+            
+            # Summary Metrics
+            m1, m2, m3 = st.columns(3)
+            m1.metric("Total Volume", f"{df['liters_sold'].sum():,.1f} L")
+            m2.metric("Total Revenue", f"KES {df['total_sales'].sum():,.2f}")
+            m3.metric("Net Balance", f"KES {df['difference'].sum():,.2f}")
+            
+            st.write("---")
+            st.markdown("### All Shift Records (Including Tank Dipsticks)")
+            
+            # Define status for the manager
+            def get_status(val):
+                if val < -5: return f"🔴 Shortage (KES {abs(val):,.0f})"
+                if val > 5: return f"🟢 Excess (KES {val:,.0f})"
+                return "⚪ Balanced"
+
+            df['Status'] = df['difference'].apply(get_status)
+
+            # Reordering columns so Manager sees everything
+            display_df = df[[
+                'created_at', 'attendant_name', 
+                'pump_reading_start', 'pump_reading_end',  # Tank Readings
+                'meter_reading_start', 'meter_reading_end', # Meter Readings
+                'liters_sold', 'total_sales', 'cash', 'till', 'Status'
+            ]]
+            
+            # Renaming for better readability in the table
+            display_df.columns = [
+                'Date/Time', 'Attendant', 'Tank Start', 'Tank End', 
+                'Mtr Start', 'Mtr End', 'Liters Sold', 'Expected KES', 
+                'Cash', 'M-Pesa', 'Status'
+            ]
+            
+            st.dataframe(display_df, use_container_width=True)
             # --- CRASH PROTECTION (KEYERROR FIX) ---
             req_cols = ['total_sales', 'liters_sold', 'difference', 'price_per_ltr', 'cash', 'till']
             for c in req_cols:
