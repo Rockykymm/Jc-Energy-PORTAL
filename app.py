@@ -305,11 +305,9 @@ elif choice == "👨‍💼 Management":
     """, unsafe_allow_html=True)
     
     # Use st.dataframe for the clean white-row look
-    st.dataframe(display_df, use_container_width=True, hide_index=True)
-            st.table(display_df)
-        else:
-            st.info("No sales records found in the database yet.")
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.dataframe(display_df, use_container_width=True, hide_index=True)
+    else:
+        st.info("No sales records found in the database yet.")
 
     with tab2:
         st.markdown('<div class="readable-card">', unsafe_allow_html=True)
