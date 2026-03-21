@@ -209,45 +209,34 @@ if choice == "📝 Record Shift":
         end_mtr = st.number_input("Closing Meter (Mtr)", value=start_mtr, step=0.1)
     with col3:
         price_per_liter = st.number_input("Price (KES/L)", value=189.0, step=0.1)
-    # 3. CALCULATIONS
-    liters_sold = start_val - end_reading
+    # 3. CALCULATIONS (Use Meter for Sales)
+    liters_sold = end_mtr - start_mtr  # Sales volume comes from Meter
     total_sales_expected = liters_sold * price_per_liter
     
-    st.markdown(f'<div style="background: #f1c40f; color: black; padding: 25px; border-radius: 12px; text-align: center; font-weight: 900; font-size: 28px; margin: 15px 0; border: 2px solid white;">'
-                f'EXPECTED REVENUE: KES {max(0.0, total_sales_expected):,.2f}</div>', unsafe_allow_html=True)
+    # ... (Keep your revenue display and cash/mpesa inputs the same) ...
 
-    pay_col1, pay_col2 = st.columns(2)
-    with pay_col1:
-        cash = st.number_input("Total Cash Collected (KES)", min_value=0.0)
-    with pay_col2:
-        mpesa = st.number_input("Total Till / M-Pesa (KES)", min_value=0.0)
-
-    actual_collected = cash + mpesa
-    diff = actual_collected - total_sales_expected
-
-    # 4. SUBMISSION
+    # Inside the "FINALIZE SHIFT" button logic, update the insert dictionary:
     if st.button("FINALIZE SHIFT", use_container_width=True):
-        # 1. CALCULATION LOGIC
-        liters_sold = start_val - end_reading
-        total_sales_expected = liters_sold * price
+        # Calculate again to be sure
+        liters_sold = end_mtr - start_mtr 
+        total_sales_expected = liters_sold * price_per_liter
         actual_collected = cash + mpesa
         diff = actual_collected - total_sales_expected
 
-        if end_reading > start_val:
-            st.error("🚨 Error: Closing reading cannot be higher than opening!")
-        else:
-            with st.spinner("Saving to Cloud..."):
-                supabase.table("shift_logs").insert({
-                    "attendant_name": user['full_name'], 
-                    "pump_reading_start": start_val,
-                    "pump_reading_end": end_reading, 
-                    "liters_sold": liters_sold,
-                    "price_per_ltr": price, 
-                    "total_sales": total_sales_expected,
-                    "cash": cash, 
-                    "till": mpesa, 
-                    "difference": diff
-                }).execute()
+        # Update the database columns (Make sure these exist in Supabase!)
+        supabase.table("shift_logs").insert({
+            "attendant_name": user['full_name'], 
+            "pump_reading_start": start_val,
+            "pump_reading_end": end_reading, 
+            "meter_reading_start": start_mtr, # New Column
+            "meter_reading_end": end_mtr,     # New Column
+            "liters_sold": liters_sold,
+            "price_per_ltr": price_per_liter, 
+            "total_sales": total_sales_expected,
+            "cash": cash, 
+            "till": mpesa, 
+            "difference": diff
+        }).execute()
                 
                 # 2. THE EXIT SEQUENCE
                 # Show your specific message in a big green success box
