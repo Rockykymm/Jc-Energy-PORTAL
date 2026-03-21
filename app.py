@@ -773,20 +773,30 @@ elif choice == "👤 Management":
             if logs_res.data:
             df = pd.DataFrame(logs_res.data)
             
-            # ... (your formatting and status logic here) ...
+            # 1. FORMAT DATE
+            df['created_at'] = pd.to_datetime(df['created_at']).dt.strftime('%Y-%m-%d %H:%M')
+            
+            # 2. STATUS LOGIC (MUST BE HERE)
+            def get_status(val):
+                if val < -5: return f"🔴 Shortage (KES {abs(val):,.0f})"
+                if val > 5: return f"🟢 Excess (KES {val:,.0f})"
+                return "⚪ Balanced"
+            
+            # Apply the logic to create the column
+            df['Shift Status'] = df['difference'].apply(get_status)
 
-            # SELECT AND RENAME COLUMNS
+            # 3. SELECT AND RENAME COLUMNS
             display_df = df[['created_at', 'attendant_name', 'liters_sold', 'total_sales', 'cash', 'till', 'Shift Status']]
             display_df.columns = [
                 'Date/Time', 'Attendant', 'Liters Sold', 
                 'Total Sales', 'Cash', 'Till (M-Pesa)', 'Shift Status'
             ]
             
-            # Display the table INSIDE the if block
+            # 4. DISPLAY
             st.table(display_df)
             st.markdown('</div>', unsafe_allow_html=True)
-            else:
-            # Now this else is correctly attached to 'if logs_res.data:'
+        else:
+            # This is now correctly aligned with the 'if'
             st.info("No sales records found in the database yet.")
 
     with tab2:
