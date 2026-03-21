@@ -191,24 +191,87 @@ with st.sidebar:
 if choice == "📝 Record Shift":
     st.markdown(f'<div class="welcome-text">Welcome, {user["full_name"]}</div>', unsafe_allow_html=True)
     
-    # 1. INITIALIZE FETCHING & SESSION STATE
+    # 1. FETCH DATA (Defines the variables to stop the NameError)
     res_last = supabase.table("shift_logs").select("*").order("created_at", desc=True).limit(20).execute()
     
-    # Ensure start values are defined to prevent NameErrors
-    start_val = float(res_last.data[0]["pump_reading_end"]) if res_last.data else 0.0
-    start_mtr = float(res_last.data[0]["meter_reading_end"]) if res_last.data else 0.0
+    # Ensuring these variables always exist for the inputs below
+    prev_tank_end = float(res_last.data[0]["pump_reading_end"]) if res_last.data else 0.0
+    prev_mtr_end = float(res_last.data[0]["meter_reading_end"]) if res_last.data else 0.0
 
-    # Check if a tank entry exists for today in the database
+    # 2. CHECK IF TANK IS ALREADY LOCKED
     today_str = datetime.now().strftime('%Y-%m-%d')
-    tank_entries_today = [d for d in res_last.data if pd.to_datetime(d['created_at']).strftime('%Y-%m-%d') == today_str]
+    db_locked = any(pd.to_datetime(d['created_at']).strftime('%Y-%m-%d') == today_str for d in res_last.data)
     
-    # Logic: Tank is "Locked" if it's already in the DB OR if we just clicked the lock button
-    db_locked = len(tank_entries_today) > 0
     if "manual_tank_lock" not in st.session_state:
         st.session_state.manual_tank_lock = False
 
     is_tank_locked = db_locked or st.session_state.manual_tank_lock
 
+    # 3. TANK SECTION (Always visible, but disabled when locked)
+    with st.expander("📊 DAILY TANK DIPSTICK (6:00 AM ONLY)", expanded=True):
+        col_t1, col_t2 = st.columns(2)
+        # Inputs stay visible but turn gray/unclickable once locked
+        tank_start = col_t1.number_input("Opening Tank (L)", value=prev_tank_end, disabled=is_tank_locked)
+        tank_end = col_t2.number_input("Closing Tank (L) [Dipstick]", value=prev_tank_end, disabled=is_tank_locked)
+        
+        if not is_tank_locked:
+            if st.button("🔒 SUBMIT & LOCK DIPSTICK"):
+                st.session_state.manual_tank_lock = True
+                st.rerun()
+        else:
+            st.success("✅ Dipstick readings are locked for the day.")
+
+    st.write("---")
+
+    # 4. METER SECTION (Always visible as requested)
+    st.subheader("⛽ Shift Meter Readings")
+    col_m1, col_m2, col_p = st.columns(3)
+    with col_m1:
+        mtr_start = st.number_input("Meter Start (L)", value=prev_mtr_end, disabled=True)
+    with col_m2:
+        mtr_end = st.number_input("Meter End (L)", value=prev_mtr_end, step=0.1)
+    with col_p:
+        price = st.number_input("Price (KES/L)", value=189.0, step=0.1)
+
+    # 5. CALCULATIONS
+    liters_sold = mtr_end - mtr_start
+    total_sales_expected = liters_sold * price
+    
+    st.markdown(f'<div style="background: #f1c40f; color: black; padding: 20px; border-radius: 10px; text-align: center; font-weight: 800; font-size: 24px; margin: 15px 0; border: 2px solid white;">'
+                f'EXPECTED REVENUE: KES {max(0.0, total_sales_expected):,.2f}</div>', unsafe_allow_html=True)
+
+    c1, c2 = st.columns(2)
+    cash = c1.number_input("Total Cash Collected (KES)", min_value=0.0)
+    mpesa = c2.number_input("Total M-Pesa / Till (KES)", min_value=0.0)
+
+    # 6. FINALIZE SHIFT
+    if st.button("FINALIZE SHIFT", use_container_width=True):
+        if not is_tank_locked:
+            st.error("🚨 Please click 'SUBMIT & LOCK DIPSTICK' at the top before finalizing the shift.")
+        elif mtr_end < mtr_start:
+            st.error("🚨 Error: Closing meter cannot be lower than opening!")
+        else:
+            with st.spinner("Recording Shift..."):
+                actual_total = cash + mpesa
+                diff = actual_total - total_sales_expected
+                
+                supabase.table("shift_logs").insert({
+                    "attendant_name": user['full_name'], 
+                    "pump_reading_start": tank_start,
+                    "pump_reading_end": tank_end, 
+                    "meter_reading_start": mtr_start,
+                    "meter_reading_end": mtr_end,
+                    "liters_sold": liters_sold,
+                    "price_per_ltr": price, 
+                    "total_sales": total_sales_expected,
+                    "cash": cash, "till": mpesa, "difference": diff
+                }).execute()
+                
+                st.session_state.manual_tank_lock = False
+                st.success("✨ SHIFT SUCCESSFULLY RECORDED!")
+                time.sleep(2)
+                st.session_state.logged_in = False
+                st.rerun()
     # 2. TANK SECTION (Dipstick)
     with st.expander("📊 DAILY TANK DIPSTICK (6:00 AM ONLY)", expanded=not is_tank_locked):
         if is_tank_locked:
