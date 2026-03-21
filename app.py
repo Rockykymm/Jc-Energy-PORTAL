@@ -608,6 +608,46 @@ elif choice == "👤 Management":
         st.markdown('<div class="readable-card">', unsafe_allow_html=True)
         st.markdown("### Performance Overview")
         
+        # 1. Fetch data from Supabase
+        logs_res = supabase.table("shift_logs").select("*").order("created_at", desc=True).execute()
+        
+        if logs_res.data:
+            df = pd.DataFrame(logs_res.data)
+            
+            # 2. Format the Date/Time
+            df['created_at'] = pd.to_datetime(df['created_at']).dt.strftime('%Y-%m-%d %H:%M')
+            
+            # 3. Define the Status Logic (Red for shortage, Green for excess)
+            def get_status(val):
+                if val < -5: return f"🔴 Shortage (KES {abs(val):,.0f})"
+                if val > 5: return f"🟢 Excess (KES {val:,.0f})"
+                return "⚪ Balanced"
+            
+            df['Shift Status'] = df['difference'].apply(get_status)
+
+            # 4. Select the Columns to show the Manager
+            # This includes the Tank readings (pump_reading)
+            display_df = df[[
+                'created_at', 'attendant_name', 
+                'pump_reading_start', 'pump_reading_end', 
+                'meter_reading_start', 'meter_reading_end', 
+                'liters_sold', 'total_sales', 'cash', 'till', 'Shift Status'
+            ]]
+            
+            # 5. Rename to "The Words" (Labels)
+            display_df.columns = [
+                'Date/Time', 'Attendant', 
+                'Tank Start', 'Tank End', 
+                'Mtr Start', 'Mtr End', 
+                'Liters Sold', 'Expected KES', 'Cash', 'M-Pesa', 'Status'
+            ]
+            
+            # 6. Display the Table
+            st.dataframe(display_df, use_container_width=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+        else:
+            # Properly aligned else to prevent SyntaxErrors
+            st.info("No sales records found in the database yet.")
         # Fetching logs from Supabase
         logs_res = supabase.table("shift_logs").select("*").order("created_at", desc=True).execute()
         
