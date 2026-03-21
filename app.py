@@ -190,14 +190,17 @@ with st.sidebar:
 if choice == "📝 Record Shift":
     st.markdown(f'<div class="welcome-text">Welcome, {user["full_name"]}</div>', unsafe_allow_html=True)
     
-    # 1. GET OPENING READING
-    res_last = supabase.table("shift_logs").select("pump_reading_end").order("created_at", desc=True).limit(1).execute()
+    # 1. GET OPENING READINGS (LITRES & METER)
+    res_last = supabase.table("shift_logs").select("pump_reading_end", "meter_reading_end").order("created_at", desc=True).limit(1).execute()
+    
     start_val = float(res_last.data[0]["pump_reading_end"]) if res_last.data else 0.0
+    start_mtr = float(res_last.data[0]["meter_reading_end"]) if res_last.data else 0.0
 
+    # Display both in the status card
     st.markdown(f'<div style="background: rgba(255,255,255,0.1); border-left: 5px solid #f1c40f; padding: 20px; border-radius: 8px; margin-bottom: 20px;">'
                 f'<span style="color: #f1c40f; font-weight: bold;">STATION STATUS</span><br>'
-                f'<span style="color: white; font-size: 26px; font-weight: 900;">Opening Reading: {start_val:,.1f} L</span></div>', unsafe_allow_html=True)
-
+                f'<span style="color: white; font-size: 20px;">Opening Litres: {start_val:,.1f} L</span><br>'
+                f'<span style="color: white; font-size: 20px;">Opening Meter: {start_mtr:,.1f} Mtr</span></div>', unsafe_allow_html=True)
     # 2. INPUT DATA
     col1, col2 = st.columns(2)
     with col1:
