@@ -1,3 +1,4 @@
+
 import time
 import streamlit as st
 from supabase import create_client
@@ -6,6 +7,8 @@ from PIL import Image
 import io
 import base64
 from datetime import datetime
+# Ensure this is GLOBAL at the top of app.py
+logo_html = "<h1 style='text-align: center; color: #f1c40f;'>JC ENERGY</h1>"
 
 # 1. DATABASE CONNECTION
 # Ensure these secrets are set in your Streamlit Cloud dashboard
