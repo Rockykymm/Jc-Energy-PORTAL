@@ -10,7 +10,11 @@ st.set_page_config(
 # This is the "magic" link that tells your phone to show the 'Install' button
 st.markdown(
     """
-    <link rel="manifest" href="app/static/manifest.json">
+    <link rel="manifest" href="/app/static/manifest.json">
+    <link rel="icon" href="/app/static/logo.png" type="image/png">
+    <link rel="apple-touch-icon" href="/app/static/logo.png">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     """,
     unsafe_allow_html=True
 )
