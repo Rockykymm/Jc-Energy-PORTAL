@@ -1,3 +1,25 @@
+import streamlit as st
+
+# This MUST be the first streamlit command in the file
+st.set_page_config(
+    page_title="JC Energy Portal", 
+    page_icon="static/logo.png",
+    layout="wide"
+)
+
+# This is the "magic" link that tells your phone to show the 'Install' button
+st.markdown(
+    """
+    <link rel="manifest" href="/app/static/manifest.json">
+    <link rel="icon" href="/app/static/logo.png" type="image/png">
+    <link rel="apple-touch-icon" href="/app/static/logo.png">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    """,
+    unsafe_allow_html=True
+)
+
+# ...
 import time
 import streamlit as st
 from supabase import create_client
@@ -6,8 +28,6 @@ from PIL import Image
 import io
 import base64
 from datetime import datetime
-# Ensure this is GLOBAL at the top of app.py
-logo_html = "<h1 style='text-align: center; color: #f1c40f;'>JC ENERGY</h1>"
 
 # 1. DATABASE CONNECTION
 # Ensure these secrets are set in your Streamlit Cloud dashboard
@@ -170,60 +190,53 @@ with st.sidebar:
 if choice == "📝 Record Shift":
     st.markdown(f'<div class="welcome-text">Welcome, {user["full_name"]}</div>', unsafe_allow_html=True)
     
-    # 1. GET OPENING READING
-    res_last = supabase.table("shift_logs").select("pump_reading_end").order("created_at", desc=True).limit(1).execute()
+    # 1. GET OPENING READINGS (LITRES & METER)
+    res_last = supabase.table("shift_logs").select("pump_reading_end", "meter_reading_end").order("created_at", desc=True).limit(1).execute()
+    
     start_val = float(res_last.data[0]["pump_reading_end"]) if res_last.data else 0.0
+    start_mtr = float(res_last.data[0]["meter_reading_end"]) if res_last.data else 0.0
 
+    # Display both in the status card
     st.markdown(f'<div style="background: rgba(255,255,255,0.1); border-left: 5px solid #f1c40f; padding: 20px; border-radius: 8px; margin-bottom: 20px;">'
                 f'<span style="color: #f1c40f; font-weight: bold;">STATION STATUS</span><br>'
-                f'<span style="color: white; font-size: 26px; font-weight: 900;">Opening Reading: {start_val:,.1f} L</span></div>', unsafe_allow_html=True)
-
+                f'<span style="color: white; font-size: 20px;">Opening Litres: {start_val:,.1f} L</span><br>'
+                f'<span style="color: white; font-size: 20px;">Opening Meter: {start_mtr:,.1f} Mtr</span></div>', unsafe_allow_html=True)
     # 2. INPUT DATA
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     with col1:
-        end_reading = st.number_input("Closing Pump Reading (L)", value=start_val, step=0.1)
+        end_reading = st.number_input("Closing Litres (L)", value=start_val, step=0.1)
     with col2:
-        price_per_liter = st.number_input("Current Price per Liter (KES)", value=189.0, step=0.1)
-
-    # 3. CALCULATIONS
-    liters_sold = start_val - end_reading
+        end_mtr = st.number_input("Closing Meter (Mtr)", value=start_mtr, step=0.1)
+    with col3:
+        price_per_liter = st.number_input("Price (KES/L)", value=189.0, step=0.1)
+    # 3. CALCULATIONS (Use Meter for Sales)
+    liters_sold = end_mtr - start_mtr  # Sales volume comes from Meter
     total_sales_expected = liters_sold * price_per_liter
     
-    st.markdown(f'<div style="background: #f1c40f; color: black; padding: 25px; border-radius: 12px; text-align: center; font-weight: 900; font-size: 28px; margin: 15px 0; border: 2px solid white;">'
-                f'EXPECTED REVENUE: KES {max(0.0, total_sales_expected):,.2f}</div>', unsafe_allow_html=True)
+    # ... (Keep your revenue display and cash/mpesa inputs the same) ...
 
-    pay_col1, pay_col2 = st.columns(2)
-    with pay_col1:
-        cash = st.number_input("Total Cash Collected (KES)", min_value=0.0)
-    with pay_col2:
-        mpesa = st.number_input("Total Till / M-Pesa (KES)", min_value=0.0)
-
-    actual_collected = cash + mpesa
-    diff = actual_collected - total_sales_expected
-
-    # 4. SUBMISSION
+    # Inside the "FINALIZE SHIFT" button logic, update the insert dictionary:
     if st.button("FINALIZE SHIFT", use_container_width=True):
-        # 1. CALCULATION LOGIC
-        liters_sold = start_val - end_reading
+        # Calculate again to be sure
+        liters_sold = end_mtr - start_mtr 
         total_sales_expected = liters_sold * price_per_liter
         actual_collected = cash + mpesa
         diff = actual_collected - total_sales_expected
 
-        if end_reading > start_val:
-            st.error("🚨 Error: Closing reading cannot be higher than opening!")
-        else:
-            with st.spinner("Saving to Cloud..."):
-                supabase.table("shift_logs").insert({
-                    "attendant_name": user['full_name'], 
-                    "pump_reading_start": start_val,
-                    "pump_reading_end": end_reading, 
-                    "liters_sold": liters_sold,
-                    "price_per_ltr": price_per_liter, 
-                    "total_sales": total_sales_expected,
-                    "cash": cash, 
-                    "till": mpesa, 
-                    "difference": diff
-                }).execute()
+        # Update the database columns (Make sure these exist in Supabase!)
+        supabase.table("shift_logs").insert({
+            "attendant_name": user['full_name'], 
+            "pump_reading_start": start_val,
+            "pump_reading_end": end_reading, 
+            "meter_reading_start": start_mtr, # New Column
+            "meter_reading_end": end_mtr,     # New Column
+            "liters_sold": liters_sold,
+            "price_per_ltr": price_per_liter, 
+            "total_sales": total_sales_expected,
+            "cash": cash, 
+            "till": mpesa, 
+            "difference": diff
+        }).execute()
                 
                 # 2. THE EXIT SEQUENCE
                 # Show your specific message in a big green success box
@@ -285,28 +298,11 @@ elif choice == "👨‍💼 Management":
                 'Price/Ltr', 'Total Sales', 'Cash', 'Till (M-Pesa)', 'Shift Status'
             ]
             
-           # --- TARGETED TABLE STYLING ---
-    st.markdown("""
-        <style>
-        [data-testid="stDataFrame"] thead tr th {
-            background-color: #f1c40f !important;
-            color: #072a07 !important;
-            font-weight: bold !important;
-        }
-        [data-testid="stDataFrame"] tbody tr td {
-            background-color: #FFFFFF !important;
-            color: #000000 !important;
-        }
-        [data-testid="stDataFrame"] tbody tr:nth-child(even) {
-            background-color: #F5F5F5 !important;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-    
-    # Use st.dataframe for the clean white-row look
-        st.dataframe(display_df, use_container_width=True, hide_index=True)
-    else:
-        st.info("No sales records found in the database yet.")
+            # Display Table
+            st.table(display_df)
+        else:
+            st.info("No sales records found in the database yet.")
+        st.markdown('</div>', unsafe_allow_html=True)
 
     with tab2:
         st.markdown('<div class="readable-card">', unsafe_allow_html=True)
