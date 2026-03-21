@@ -598,7 +598,6 @@ if choice == "📝 Record Shift":
                 st.success("✨ THANK YOU, SHIFT OVER!")
                 time.sleep(3)
                 st.session_state.logged_in = False
-                st.rerun()
 # --- PAGE 2: MANAGEMENT ---
 elif choice == "👤 Management":
     st.markdown('<div class="welcome-text">Business Management Dashboard</div>', unsafe_allow_html=True)
@@ -608,6 +607,43 @@ elif choice == "👤 Management":
     with tab1:
         st.markdown('<div class="readable-card">', unsafe_allow_html=True)
         st.markdown("### Performance Overview")
+        
+        # Fetching logs from Supabase
+        logs_res = supabase.table("shift_logs").select("*").order("created_at", desc=True).execute()
+        
+        if logs_res.data:
+            df = pd.DataFrame(logs_res.data)
+            
+            # Formatting for the table
+            df['created_at'] = pd.to_datetime(df['created_at']).dt.strftime('%Y-%m-%d %H:%M')
+            
+            def get_status(val):
+                if val < -5: return f"🔴 Shortage (KES {abs(val):,.0f})"
+                if val > 5: return f"🟢 Excess (KES {val:,.0f})"
+                return "⚪ Balanced"
+            
+            df['Shift Status'] = df['difference'].apply(get_status)
+
+            # SELECTING COLUMNS - Ensure these exact names exist in your Supabase table
+            display_df = df[[
+                'created_at', 'attendant_name', 
+                'pump_reading_start', 'pump_reading_end', 
+                'meter_reading_start', 'meter_reading_end', 
+                'liters_sold', 'total_sales', 'cash', 'till', 'Shift Status'
+            ]]
+            
+            # ADDING THE LABELS (THE WORDS)
+            display_df.columns = [
+                'Date/Time', 'Attendant', 
+                'Tank Opening (L)', 'Tank Closing (L)', 
+                'Mtr Start', 'Mtr End', 
+                'Liters Sold', 'Expected KES', 'Cash', 'M-Pesa', 'Status'
+            ]
+            
+            st.dataframe(display_df, use_container_width=True)
+        else:
+            # This is likely where your syntax error was happening
+            st.info("No logs found in the database yet.")
         
         # 1. FETCH DATA
         logs_res = supabase.table("shift_logs").select("*").order("created_at", desc=True).execute()
