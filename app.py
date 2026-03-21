@@ -187,6 +187,7 @@ with st.sidebar:
         st.rerun()
 
 # --- PAGE 1: RECORD SHIFT ---
+# --- PAGE 1: RECORD SHIFT ---
 if choice == "📝 Record Shift":
     st.markdown(f'<div class="welcome-text">Welcome, {user["full_name"]}</div>', unsafe_allow_html=True)
     
@@ -196,11 +197,13 @@ if choice == "📝 Record Shift":
     start_val = float(res_last.data[0]["pump_reading_end"]) if res_last.data else 0.0
     start_mtr = float(res_last.data[0]["meter_reading_end"]) if res_last.data else 0.0
 
-    # Display both in the status card
-    st.markdown(f'<div style="background: rgba(255,255,255,0.1); border-left: 5px solid #f1c40f; padding: 20px; border-radius: 8px; margin-bottom: 20px;">'
-                f'<span style="color: #f1c40f; font-weight: bold;">STATION STATUS</span><br>'
-                f'<span style="color: white; font-size: 20px;">Opening Litres: {start_val:,.1f} L</span><br>'
-                f'<span style="color: white; font-size: 20px;">Opening Meter: {start_mtr:,.1f} Mtr</span></div>', unsafe_allow_html=True)
+    st.markdown(f'''
+        <div style="background: rgba(255,255,255,0.1); border-left: 5px solid #f1c40f; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+            <span style="color: #f1c40f; font-weight: bold;">STATION STATUS</span><br>
+            <span style="color: white; font-size: 20px;">Opening Litres: {start_val:,.1f} L</span><br>
+            <span style="color: white; font-size: 20px;">Opening Meter: {start_mtr:,.1f} Mtr</span>
+        </div>''', unsafe_allow_html=True)
+
     # 2. INPUT DATA
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -209,43 +212,45 @@ if choice == "📝 Record Shift":
         end_mtr = st.number_input("Closing Meter (Mtr)", value=start_mtr, step=0.1)
     with col3:
         price_per_liter = st.number_input("Price (KES/L)", value=189.0, step=0.1)
-    # 3. CALCULATIONS (Use Meter for Sales)
-    liters_sold = end_mtr - start_mtr  # Sales volume comes from Meter
+
+    # 3. CALCULATIONS (Sales based on Meter)
+    liters_sold = end_mtr - start_mtr
     total_sales_expected = liters_sold * price_per_liter
     
-    # ... (Keep your revenue display and cash/mpesa inputs the same) ...
+    st.markdown(f'<div style="background: #f1c40f; color: black; padding: 25px; border-radius: 12px; text-align: center; font-weight: 900; font-size: 28px; margin: 15px 0; border: 2px solid white;">'
+                f'EXPECTED REVENUE: KES {max(0.0, total_sales_expected):,.2f}</div>', unsafe_allow_html=True)
 
-    # Inside the "FINALIZE SHIFT" button logic, update the insert dictionary:
+    pay_col1, pay_col2 = st.columns(2)
+    with pay_col1:
+        cash = st.number_input("Total Cash Collected (KES)", min_value=0.0)
+    with pay_col2:
+        mpesa = st.number_input("Total Till / M-Pesa (KES)", min_value=0.0)
+
+    # 4. SUBMISSION
     if st.button("FINALIZE SHIFT", use_container_width=True):
-        # Calculate again to be sure
-        liters_sold = end_mtr - start_mtr 
-        total_sales_expected = liters_sold * price_per_liter
         actual_collected = cash + mpesa
         diff = actual_collected - total_sales_expected
 
-        # Update the database columns (Make sure these exist in Supabase!)
-        supabase.table("shift_logs").insert({
-            "attendant_name": user['full_name'], 
-            "pump_reading_start": start_val,
-            "pump_reading_end": end_reading, 
-            "meter_reading_start": start_mtr, # New Column
-            "meter_reading_end": end_mtr,     # New Column
-            "liters_sold": liters_sold,
-            "price_per_ltr": price_per_liter, 
-            "total_sales": total_sales_expected,
-            "cash": cash, 
-            "till": mpesa, 
-            "difference": diff
-        }).execute()
+        if end_mtr < start_mtr:
+            st.error("🚨 Error: Closing meter cannot be lower than opening!")
+        else:
+            with st.spinner("Saving to Cloud..."):
+                supabase.table("shift_logs").insert({
+                    "attendant_name": user['full_name'], 
+                    "pump_reading_start": start_val,
+                    "pump_reading_end": end_reading, 
+                    "meter_reading_start": start_mtr,
+                    "meter_reading_end": end_mtr,
+                    "liters_sold": liters_sold,
+                    "price_per_ltr": price_per_liter, 
+                    "total_sales": total_sales_expected,
+                    "cash": cash, 
+                    "till": mpesa, 
+                    "difference": diff
+                }).execute()
                 
-                # 2. THE EXIT SEQUENCE
-                # Show your specific message in a big green success box
                 st.success("✨ THANK YOU, SHIFT OVER!")
-                
-                # Wait 3 seconds so they can read it
                 time.sleep(3)
-                
-                # Reset login status and force refresh to the Login Page
                 st.session_state.logged_in = False
                 st.rerun()
 # --- PAGE 2: MANAGEMENT (FULL RESTORED VERSION) ---
