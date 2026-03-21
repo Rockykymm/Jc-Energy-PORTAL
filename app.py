@@ -785,7 +785,7 @@ elif choice == "👤 Management":
             # Display the table INSIDE the if block
             st.table(display_df)
             st.markdown('</div>', unsafe_allow_html=True)
-        else:
+            else:
             # Now this else is correctly attached to 'if logs_res.data:'
             st.info("No sales records found in the database yet.")
 
