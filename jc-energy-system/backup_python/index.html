@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark light" />
+    <title>JC Energy System</title>
+    <meta
+      name="description"
+      content="JC Energy System — modern energy solutions. Projects, services, and contact."
+    />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="./styles.css" />
+    <script defer src="./main.js"></script>
+  </head>
+  <body>
+    <div class="bg" aria-hidden="true">
+      <div class="blob b1"></div>
+      <div class="blob b2"></div>
+      <div class="grid"></div>
+    </div>
+
+    <header class="topbar">
+      <a class="brand" href="#top" aria-label="Go to top">
+        <span class="brandMark" aria-hidden="true"></span>
+        <span class="brandText">JC Energy System</span>
+      </a>
+
+      <nav class="nav">
+        <a class="navLink" href="#services">Services</a>
+        <a class="navLink" href="#projects">Projects</a>
+        <a class="navLink" href="#about">About</a>
+      </nav>
+
+      <div class="actions">
+        <a class="btn btnGhost" href="#projects">View work</a>
+        <a class="btn btnPrimary" id="contactBtn" href="#contact">Contact</a>
+      </div>
+    </header>
+
+    <main id="top" class="page">
+      <section class="hero">
+        <div class="card heroCard">
+          <div class="kicker">
+            <span class="pill">Energy</span>
+            <span class="pill pillSoft">Solar • Power • Systems</span>
+          </div>
+
+          <h1 class="heroTitle">
+            Reliable power systems, designed for
+            <span class="accent">performance</span> and
+            <span class="accent">uptime</span>.
+          </h1>
+          <p class="heroSubtitle">
+            JC Energy System provides modern energy solutions — from assessment
+            to installation and maintenance — built for homes, businesses, and
+            growing teams.
+          </p>
+
+          <div class="heroCtas">
+            <a class="btn btnPrimary btnLarge" href="#contact">Get a quote</a>
+            <a class="btn btnGhost btnLarge" href="#projects">See projects</a>
+          </div>
+
+          <div class="heroMeta">
+            <div class="metaItem">
+              <div class="metaLabel">Focus</div>
+              <div class="metaValue">Solar, backup power, energy optimization</div>
+            </div>
+            <div class="metaItem">
+              <div class="metaLabel">Delivery</div>
+              <div class="metaValue">Assessment → install → support</div>
+            </div>
+            <div class="metaItem">
+              <div class="metaLabel">Response</div>
+              <div class="metaValue">Fast, clear quotes</div>
+            </div>
+          </div>
+        </div>
+
+        <aside class="stack">
+          <div class="card statCard">
+            <div class="statTop">
+              <div class="statIcon" aria-hidden="true">⚡</div>
+              <div class="statTitle">Efficiency</div>
+            </div>
+            <div class="statValue">Lower waste</div>
+            <div class="statDesc">Right-sized components and smart load planning.</div>
+          </div>
+
+          <div class="card statCard">
+            <div class="statTop">
+              <div class="statIcon" aria-hidden="true">🛠️</div>
+              <div class="statTitle">Build quality</div>
+            </div>
+            <div class="statValue">Clean installs</div>
+            <div class="statDesc">Safe cabling, neat finishes, serviceable layout.</div>
+          </div>
+
+          <div class="card statCard">
+            <div class="statTop">
+              <div class="statIcon" aria-hidden="true">🧾</div>
+              <div class="statTitle">Transparent</div>
+            </div>
+            <div class="statValue">Clear scope</div>
+            <div class="statDesc">Itemized quotes with practical trade-offs.</div>
+          </div>
+        </aside>
+      </section>
+
+      <section id="services" class="section">
+        <div class="sectionHead">
+          <h2 class="sectionTitle">Services</h2>
+          <p class="sectionSubtitle">
+            End-to-end support for dependable energy systems.
+          </p>
+        </div>
+
+        <div class="gridCards">
+          <article class="card serviceCard">
+            <h3 class="cardTitle">Solar system installation</h3>
+            <p class="muted">
+              Site assessment, sizing, panel + inverter selection, and clean
+              installation.
+            </p>
+          </article>
+
+          <article class="card serviceCard">
+            <h3 class="cardTitle">Backup power solutions</h3>
+            <p class="muted">
+              Inverter + battery configuration for stable power during outages.
+            </p>
+          </article>
+
+          <article class="card serviceCard">
+            <h3 class="cardTitle">Maintenance & troubleshooting</h3>
+            <p class="muted">
+              Diagnostics, repairs, upgrades, and preventive maintenance.
+            </p>
+          </article>
+
+          <article class="card serviceCard">
+            <h3 class="cardTitle">Energy optimization</h3>
+            <p class="muted">
+              Load planning and efficiency guidance to reduce monthly costs.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section id="projects" class="section">
+        <div class="sectionHead">
+          <h2 class="sectionTitle">Projects</h2>
+          <p class="sectionSubtitle">
+            Add photos and links as you complete installs.
+          </p>
+        </div>
+
+        <div class="gridCards projectsGrid">
+          <article class="card projectCard">
+            <div class="projectTop">
+              <div class="projectName">Residential Solar Setup</div>
+              <div class="tagRow">
+                <span class="tag">Solar</span>
+                <span class="tag">Inverter</span>
+                <span class="tag">Battery</span>
+              </div>
+            </div>
+            <p class="projectDesc">
+              Balanced system sizing and tidy installation for reliable daily use.
+            </p>
+          </article>
+
+          <article class="card projectCard">
+            <div class="projectTop">
+              <div class="projectName">Small Business Backup Power</div>
+              <div class="tagRow">
+                <span class="tag">Uptime</span>
+                <span class="tag">UPS</span>
+                <span class="tag">Safety</span>
+              </div>
+            </div>
+            <p class="projectDesc">
+              Critical-load mapping and stable backup to reduce downtime.
+            </p>
+          </article>
+
+          <article class="card projectCard">
+            <div class="projectTop">
+              <div class="projectName">System Upgrade & Maintenance</div>
+              <div class="tagRow">
+                <span class="tag">Service</span>
+                <span class="tag">Diagnostics</span>
+                <span class="tag">Upgrade</span>
+              </div>
+            </div>
+            <p class="projectDesc">
+              Panel/inverter checkups, battery health, and reliability improvements.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section id="about" class="section">
+        <div class="sectionHead">
+          <h2 class="sectionTitle">About</h2>
+          <p class="sectionSubtitle">
+            A straightforward, customer-first approach: build systems that work,
+            and support them after installation.
+          </p>
+        </div>
+
+        <div class="twoCol">
+          <div class="card">
+            <h3 class="cardTitle">What you can expect</h3>
+            <ul class="list">
+              <li><strong>Fast assessment</strong> and realistic recommendations</li>
+              <li><strong>Clean workmanship</strong> with safety as priority</li>
+              <li><strong>Clear handoff</strong> with usage guidance</li>
+              <li><strong>Support</strong> when you need maintenance or upgrades</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <h3 class="cardTitle">Quick details</h3>
+            <div class="contactPanel">
+              <div class="contactLine">
+                <span class="contactLabel">Email</span>
+                <span class="contactValue" id="emailText">hello@example.com</span>
+              </div>
+              <div class="contactButtons">
+                <a class="btn btnPrimary" id="emailBtn" href="#">Email us</a>
+                <button class="btn btnGhost" id="copyEmailBtn" type="button">
+                  Copy email
+                </button>
+              </div>
+              <p class="tiny" id="copyStatus" aria-live="polite"></p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer class="footer" id="contact">
+        <div class="footerInner">
+          <span class="muted">© <span id="year"></span> JC Energy System</span>
+          <div class="footerLinks">
+            <a class="navLink" href="#top">Back to top</a>
+            <a class="navLink" href="#services">Services</a>
+            <a class="navLink" href="#contact">Contact</a>
+          </div>
+        </div>
+      </footer>
+    </main>
+  </body>
+</html>
