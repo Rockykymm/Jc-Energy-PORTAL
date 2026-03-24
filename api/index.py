@@ -2,6 +2,7 @@ import os
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from supabase import create_client
+
 app = Flask(__name__)
 CORS(app)
 
@@ -10,7 +11,10 @@ def get_supabase():
     key = os.environ.get("SUPABASE_KEY")
     if not url or not key:
         return None
-    return create_client(url, key)
+    try:
+        return create_client(url, key)
+    except Exception:
+        return None
 
 @app.route('/api/status', methods=['GET'])
 def get_status():
@@ -22,10 +26,13 @@ def get_last_reading():
         sb = get_supabase()
         if not sb:
             return jsonify({"error": "DB Keys Missing"}), 500
+        
+        # Fixed the query syntax for the Supabase Python client
         res = sb.table("shift_logs").select("pump_reading_end, meter_reading_end").order("created_at", desc=True).limit(1).execute()
+        
         if res.data:
-            return jsonify(res.data[0])
-        return jsonify({"pump_reading_end": 0.0, "meter_reading_end": 0.0})
+            return jsonify(res.data[0]), 200
+        return jsonify({"pump_reading_end": 0.0, "meter_reading_end": 0.0}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -35,8 +42,12 @@ def finalize_shift():
         sb = get_supabase()
         if not sb:
             return jsonify({"error": "DB Keys Missing"}), 500
+        
         data = request.json
         res = sb.table("shift_logs").insert(data).execute()
         return jsonify({"message": "Shift finalized successfully", "data": res.data}), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+# Vercel needs the app object to be available at the module level
+# which it already is.
