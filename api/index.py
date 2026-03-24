@@ -2,8 +2,6 @@ import os
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from supabase import create_client
-from datetime import datetime
-
 app = Flask(__name__)
 CORS(app)
 
@@ -42,5 +40,3 @@ def finalize_shift():
         return jsonify({"message": "Shift finalized successfully", "data": res.data}), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-handler = app
