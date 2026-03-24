@@ -27,11 +27,14 @@ def get_last_reading():
         if not sb:
             return jsonify({"error": "DB Keys Missing"}), 500
         
-        # Fixed the query syntax for the Supabase Python client
+        # We keep your exact query logic here
         res = sb.table("shift_logs").select("pump_reading_end, meter_reading_end").order("created_at", desc=True).limit(1).execute()
         
-        if res.data:
+        # FIX: We check if 'res' exists and has a '.data' attribute before accessing it
+        # This prevents the "AttributeError" seen in your Vercel logs
+        if res and hasattr(res, 'data') and res.data:
             return jsonify(res.data[0]), 200
+            
         return jsonify({"pump_reading_end": 0.0, "meter_reading_end": 0.0}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -45,9 +48,11 @@ def finalize_shift():
         
         data = request.json
         res = sb.table("shift_logs").insert(data).execute()
-        return jsonify({"message": "Shift finalized successfully", "data": res.data}), 201
+        
+        # Applying the same safe-check here for the insert response
+        if res and hasattr(res, 'data'):
+            return jsonify({"message": "Shift finalized successfully", "data": res.data}), 201
+        
+        return jsonify({"message": "Shift recorded"}), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-# Vercel needs the app object to be available at the module level
-# which it already is.

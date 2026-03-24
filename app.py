@@ -31,16 +31,20 @@ from datetime import datetime
 
 # 1. DATABASE CONNECTION
 # Ensure these secrets are set in your Streamlit Cloud dashboard
-url = st.secrets["SUPABASE_URL"]
-key = st.secrets["SUPABASE_KEY"]
-supabase = create_client(url, key)
+import os
+
+# This checks Vercel first, then falls back to Streamlit secrets
+url = os.environ.get("SUPABASE_URL") or st.secrets.get("SUPABASE_URL")
+key = os.environ.get("SUPABASE_KEY") or st.secrets.get("SUPABASE_KEY")
+
+if not url or not key:
+    # This will tell us exactly which one the code can't "see"
+    st.error(f"Debug: URL found: {bool(url)}, Key found: {bool(key)}")
+else:
+    supabase = create_client(url, key)
 
 # FORCE WIDE LAYOUT & OPEN SIDEBAR
-st.set_page_config(
-    page_title="JC Energy Portal", 
-    layout="wide", 
-    initial_sidebar_state="expanded"
-)
+
 
 # 2. BRANDING & FULL CSS (SIDEBAR + 8-COLUMN TABLE + CARDS)
 def apply_branding():
