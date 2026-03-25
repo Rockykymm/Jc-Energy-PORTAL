@@ -1,38 +1,54 @@
 import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Login from './components/Login';
+import Dashboard from './Dashboard'; // 1. Important: This pulls in your new Dashboard.js file
+import './App.css';
 
 function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
 
+  // This function is called when a user successfully enters their Work ID
+  const handleLogin = (userData) => {
+    setUser(userData);
+    setIsLoggedIn(true);
+  };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setUser(null);
+  };
+
   return (
-    <Router>
-      <div className="App">
-        <Routes>
-          <Route
-            path="/"
-            element={
-              user ? (
-                <div style={{ textAlign: 'center', marginTop: '80px', fontFamily: 'Arial' }}>
-                  <h2>Welcome, {user.full_name}! ⛽</h2>
-                  <p>{user.is_admin ? '👑 Admin' : '👷 Attendant'}</p>
-                  <p>Dashboard coming soon...</p>
-                  <button 
-                    onClick={() => setUser(null)}
-                    style={{ padding: '10px 20px', marginTop: '20px' }}
-                  >
-                    Logout
-                  </button>
-                </div>
-              ) : (
-                <Login onLoginSuccess={setUser} />
-              )
-            }
-          />
-          <Route path="*" element={<Navigate to="/" />} />
-        </Routes>
-      </div>
-    </Router>
+    <div className="App">
+      {!isLoggedIn ? (
+        // --- LOGIN SCREEN ---
+        <div className="login-container">
+          <div className="login-box">
+            <h1><span role="img" aria-label="pump">⛽</span> JC Energy Portal</h1>
+            <p>Advanced Monitoring & Management Interface</p>
+            
+            {/* Simple Test Login - Replace with your Work ID input logic */}
+            <input type="text" placeholder="Enter Work ID (e.g. 001)" />
+            <button 
+              className="btn-primary" 
+              onClick={() => handleLogin({ name: 'Peter Kimani', role: 'admin' })}
+            >
+              Login
+            </button>
+          </div>
+        </div>
+      ) : (
+        // --- DASHBOARD SCREEN ---
+        <>
+          <div className="header-nav">
+             <span>Welcome, <strong>{user.name}</strong>!</span>
+             <button className="btn-logout" onClick={handleLogout}>Logout</button>
+          </div>
+          
+          {/* 2. THE FIX: This replaces the "Coming Soon" text with the actual form */}
+          <Dashboard user={user} />
+        </>
+      )}
+    </div>
   );
 }
 
