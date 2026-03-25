@@ -1,38 +1,108 @@
 .App {
   text-align: center;
+/* 1. The Core Colors */
+:root {
+  --forest-green: #1a472a;
+  --electric-yellow: #f4d03f;
+  --dark-bg: #0a0f0b;
+  --card-bg: #14261a;
+  --text-main: #ffffff;
+  --text-muted: #aab7ad;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
+/* 2. Global Reset */
+body {
+  background-color: var(--dark-bg);
+  color: var(--text-main);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  margin: 0;
   display: flex;
-  flex-direction: column;
-  align-items: center;
   justify-content: center;
-  font-size: calc(10px + 2vmin);
+  min-height: 100vh;
+}
+
+.App {
+  width: 100%;
+  max-width: 500px; /* Perfect for mobile use at the pump */
+  padding: 20px;
+}
+
+/* 3. The Relay Cards */
+.status-card {
+  background-color: var(--card-bg);
+  border-left: 6px solid var(--electric-yellow);
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+.status-card p {
+  margin: 0 0 10px 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.status-card strong {
+  display: block;
+  font-size: 1.4rem;
+  color: var(--text-main);
+}
+
+/* 4. Inputs & Buttons */
+input {
+  width: 100%;
+  padding: 12px;
+  margin-top: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid #2d4a36;
+  border-radius: 6px;
   color: white;
+  font-size: 1rem;
+  box-sizing: border-box;
 }
 
-.App-link {
-  color: #61dafb;
+input:focus {
+  border-color: var(--electric-yellow);
+  outline: none;
+  background: rgba(255, 255, 255, 0.1);
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.btn-primary {
+  background-color: var(--electric-yellow);
+  color: black;
+  border: none;
+  padding: 18px;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 1.1rem;
+  cursor: pointer;
+  width: 100%;
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+  filter: brightness(1.1);
+  transform: translateY(-2px);
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid var(--electric-yellow);
+  color: var(--electric-yellow);
+  padding: 8px 15px;
+  border-radius: 4px;
+  margin-right: 8px;
+  cursor: pointer;
+}
+
+/* 5. The Totals Section */
+.summary-section {
+  background: rgba(244, 208, 63, 0.05);
+  border: 1px dashed var(--electric-yellow);
+  padding: 20px;
+  border-radius: 12px;
+  text-align: center;
 }
