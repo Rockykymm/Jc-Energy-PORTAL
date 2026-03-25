@@ -1,108 +1,88 @@
 .App {
   text-align: center;
+}
+
 /* 1. The Core Colors */
 :root {
-  --forest-green: #1a472a;
-  --electric-yellow: #f4d03f;
-  --dark-bg: #0a0f0b;
-  --card-bg: #14261a;
-  --text-main: #ffffff;
-  --text-muted: #aab7ad;
+  --forest-green: #1B4332;
+  --station-gold: #FFD700;
+  --pump-red: #D90429;
+  --clean-white: #F8F9FA;
 }
 
-/* 2. Global Reset */
-body {
-  background-color: var(--dark-bg);
-  color: var(--text-main);
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  margin: 0;
-  display: flex;
-  justify-content: center;
+/* 2. Layout & Background */
+.login-container, .dashboard-container {
   min-height: 100vh;
+  background-color: var(--forest-green);
+  color: var(--clean-white);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.App {
-  width: 100%;
-  max-width: 500px; /* Perfect for mobile use at the pump */
-  padding: 20px;
-}
-
-/* 3. The Relay Cards */
-.status-card {
-  background-color: var(--card-bg);
-  border-left: 6px solid var(--electric-yellow);
-  padding: 20px;
-  border-radius: 12px;
-  margin-bottom: 20px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-}
-
-.status-card p {
-  margin: 0 0 10px 0;
-  color: var(--text-muted);
-  font-size: 0.9rem;
+/* 3. Typography */
+h1 {
+  color: var(--station-gold);
+  margin-bottom: 0.5rem;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
-.status-card strong {
-  display: block;
-  font-size: 1.4rem;
-  color: var(--text-main);
+.subtitle {
+  font-style: italic;
+  margin-bottom: 2rem;
+  opacity: 0.9;
 }
 
-/* 4. Inputs & Buttons */
+/* 4. Interactive Elements (Buttons & Inputs) */
 input {
-  width: 100%;
   padding: 12px;
-  margin-top: 10px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid #2d4a36;
-  border-radius: 6px;
-  color: white;
+  border-radius: 8px;
+  border: 2px solid var(--station-gold);
+  width: 250px;
+  margin-bottom: 1rem;
   font-size: 1rem;
-  box-sizing: border-box;
+  text-align: center;
 }
 
-input:focus {
-  border-color: var(--electric-yellow);
-  outline: none;
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.btn-primary {
-  background-color: var(--electric-yellow);
-  color: black;
+button {
+  padding: 12px 30px;
+  background-color: var(--station-gold);
+  color: var(--forest-green);
   border: none;
-  padding: 18px;
   border-radius: 8px;
   font-weight: bold;
-  font-size: 1.1rem;
   cursor: pointer;
-  width: 100%;
-  transition: all 0.2s ease;
+  transition: transform 0.2s, background-color 0.2s;
 }
 
-.btn-primary:hover {
-  filter: brightness(1.1);
-  transform: translateY(-2px);
+button:hover {
+  background-color: #e6c200;
+  transform: scale(1.05);
 }
 
-.btn-secondary {
-  background: transparent;
-  border: 1px solid var(--electric-yellow);
-  color: var(--electric-yellow);
-  padding: 8px 15px;
-  border-radius: 4px;
-  margin-right: 8px;
-  cursor: pointer;
+.logout-btn {
+  background-color: transparent;
+  color: var(--clean-white);
+  border: 1px solid var(--clean-white);
+  margin-top: 2rem;
 }
 
-/* 5. The Totals Section */
-.summary-section {
-  background: rgba(244, 208, 63, 0.05);
-  border: 1px dashed var(--electric-yellow);
+/* 5. Dashboard Specifics */
+.pump-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  width: 90%;
+  max-width: 1000px;
+  margin-top: 2rem;
+}
+
+.pump-card {
+  background: rgba(255, 255, 255, 0.1);
   padding: 20px;
   border-radius: 12px;
-  text-align: center;
+  border-left: 5px solid var(--pump-red);
 }
