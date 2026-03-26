@@ -105,6 +105,27 @@ const Dashboard = ({ user, onLogout }) => {
       return allReadings[p.fuel_type].meter !== '';
     });
 
+  // ADDED: Logic to aggregate History into Daily Reports
+  const getDailySummary = () => {
+    const summary = {};
+    history.forEach(log => {
+      const date = new Date(log.created_at).toLocaleDateString();
+      if (!summary[date]) {
+        summary[date] = { date, totalExpected: 0, totalCash: 0, totalTill: 0, totalDiff: 0 };
+      }
+      
+      const isDuplicateShift = history.find(h => h.created_at === log.created_at && h.id < log.id);
+      
+      summary[date].totalExpected += (log.expected_total || 0);
+      if (!isDuplicateShift) {
+        summary[date].totalCash += (log.actual_cash || 0);
+        summary[date].totalTill += (log.actual_till || 0);
+        summary[date].totalDiff += (log.difference || 0);
+      }
+    });
+    return Object.values(summary);
+  };
+
   // --- 4. DATABASE ACTIONS ---
   const updatePrice = async (id, newPrice) => {
     const { error } = await supabase
@@ -205,6 +226,15 @@ const Dashboard = ({ user, onLogout }) => {
           >
             📜 Shift History
           </button>
+
+          {/* ADDED: Daily Reports Button */}
+          <button 
+            className={activeTab === 'reports' ? 'nav-item active' : 'nav-item'} 
+            onClick={() => setActiveTab('reports')}
+          >
+            📊 Daily Reports
+          </button>
+
           {/* Admin Restricted Management Tab */}
           {user.workId === '001' && (
             <button 
@@ -339,6 +369,39 @@ const Dashboard = ({ user, onLogout }) => {
                   Finalize Shift & Submit
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* ADDED: TAB: DAILY REPORTS SUMMARY */}
+          {activeTab === 'reports' && (
+            <div className="history-card">
+              <h2 className="section-title">Daily Performance Summary</h2>
+              <table className="history-table" style={{ width: '100%' }}>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Expected Revenue</th>
+                    <th>Actual Cash</th>
+                    <th>Actual Till</th>
+                    <th>Total Collected</th>
+                    <th>Net Variance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {getDailySummary().map((day, index) => (
+                    <tr key={index}>
+                      <td><strong>{day.date}</strong></td>
+                      <td>KSh {day.totalExpected.toLocaleString()}</td>
+                      <td style={{ color: '#4dff4d' }}>KSh {day.totalCash.toLocaleString()}</td>
+                      <td style={{ color: '#4db8ff' }}>KSh {day.totalTill.toLocaleString()}</td>
+                      <td>KSh {(day.totalCash + day.totalTill).toLocaleString()}</td>
+                      <td style={{ color: day.totalDiff < 0 ? '#ff4d4d' : '#4dff4d', fontWeight: 'bold' }}>
+                        {day.totalDiff < 0 ? `Short (${day.totalDiff.toFixed(2)})` : `Excess (+${day.totalDiff.toFixed(2)})`}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
 
