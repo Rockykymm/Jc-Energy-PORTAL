@@ -3,53 +3,86 @@ import { supabase } from './supabaseClient';
 import './App.css';
 
 const Dashboard = ({ user, onLogout }) => {
-  // --- 1. STATE MANAGEMENT (Complete & Expanded) ---
+  // --- 1. STATE MANAGEMENT (Expanded) ---
   const [activeTab, setActiveTab] = useState('handover'); 
   const [pumps, setPumps] = useState([]); 
+  const [staff, setStaff] = useState([]); 
   const [selectedPump, setSelectedPump] = useState(null);
   const [history, setHistory] = useState([]);
   
-  // Track readings for ALL pumps to ensure accurate combined revenue
+  // Detailed individual readings for all fuel types
   const [allReadings, setAllReadings] = useState({
     Super: { meter: '', litres: '' },
     Diesel: { meter: '', litres: '' },
     Kerosene: { meter: '', litres: '' }
   });
 
-  const [closingFunds, setClosingFunds] = useState({ cash: '', till: '' });
+  // Tank level monitoring (Morning Dipstick)
+  const [dipstick, setDipstick] = useState({
+    Super: '',
+    Diesel: '',
+    Kerosene: ''
+  });
 
-  // --- 2. DATA FETCHING (Supabase Integration) ---
-  useEffect(() => {
-    const fetchData = async () => {
-      // Fetch Pumps - Handles pricing and active status
-      const { data: pumpData, error: pumpError } = await supabase.from('pumps').select('*');
-      if (pumpData) {
-        setPumps(pumpData);
-        // Default to the first pump that is actually open
-        const firstActive = pumpData.find(p => p.is_active);
-        setSelectedPump(firstActive || pumpData[0]);
+  // Financial tracking state
+  const [closingFunds, setClosingFunds] = useState({ 
+    cash: '', 
+    till: '' 
+  });
+
+  // --- 2. DATA FETCHING LOGIC ---
+  const fetchData = async () => {
+    // Fetching Pump Pricing and Status
+    const { data: pumpData, error: pumpError } = await supabase
+      .from('pumps')
+      .select('*')
+      .order('fuel_type', { ascending: true });
+
+    if (pumpData) {
+      setPumps(pumpData);
+      // Auto-selection logic for UI convenience
+      const firstActive = pumpData.find(p => p.is_active === true);
+      if (firstActive) {
+        setSelectedPump(firstActive);
+      } else {
+        setSelectedPump(pumpData[0]);
       }
+    }
 
-      // Fetch History - Gets recent shift logs
-      const { data: historyData } = await supabase
-        .from('shift_logs')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(15);
-      if (historyData) setHistory(historyData);
-    };
+    // Fetching Staff for the Admin Management tab
+    const { data: staffData } = await supabase
+      .from('staff')
+      .select('*');
+    if (staffData) {
+      setStaff(staffData);
+    }
+
+    // Fetching Shift Logs for the History tab
+    const { data: historyData } = await supabase
+      .from('shift_logs')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(40);
+    if (historyData) {
+      setHistory(historyData);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
   }, []);
 
-  // --- 3. CALCULATION LOGIC (Preserving your exact formulas) ---
+  // --- 3. BUSINESS CALCULATIONS (Fully Expanded) ---
   const calculateTotalExpected = () => {
     let total = 0;
     pumps.forEach(p => {
-      if (p.is_active) {
+      if (p.is_active === true) {
         const currentClosing = parseFloat(allReadings[p.fuel_type].meter || 0);
-        // Revenue = (Closing - Opening) * Unit Price
+        // Only calculate if the current meter is forward of the last recorded
         if (currentClosing > p.last_meter_reading) {
-          total += (currentClosing - p.last_meter_reading) * p.unit_price;
+          const consumption = currentClosing - p.last_meter_reading;
+          const revenue = consumption * p.unit_price;
+          total = total + revenue;
         }
       }
     });
@@ -60,16 +93,56 @@ const Dashboard = ({ user, onLogout }) => {
   const totalCollected = (parseFloat(closingFunds.cash || 0) + parseFloat(closingFunds.till || 0)).toFixed(2);
   const balance = (totalCollected - expectedRevenue).toFixed(2);
 
-  // Requirement: All active pumps must have readings before submission
+  // Requirement: Validate that all OPEN pumps have readings before allowing submission
   const areReadingsComplete = pumps
-    .filter(p => p.is_active)
-    .every(p => allReadings[p.fuel_type].meter !== '' && allReadings[p.fuel_type].litres !== '');
+    .filter(p => p.is_active === true)
+    .every(p => {
+      return allReadings[p.fuel_type].meter !== '' && allReadings[p.fuel_type].litres !== '';
+    });
 
-  // --- 4. SUBMISSION LOGIC ---
+  // --- 4. DATABASE ACTIONS ---
+  const updatePrice = async (id, newPrice) => {
+    const { error } = await supabase
+      .from('pumps')
+      .update({ unit_price: parseFloat(newPrice) })
+      .eq('id', id);
+    if (!error) fetchData();
+  };
+
+  const updateStaffId = async (id, newId) => {
+    const { error } = await supabase
+      .from('staff')
+      .update({ work_id: newId })
+      .eq('id', id);
+    if (!error) fetchData();
+  };
+
+  const togglePumpStatus = async (p) => {
+    const { error } = await supabase
+      .from('pumps')
+      .update({ is_active: !p.is_active })
+      .eq('id', p.id);
+    if (!error) fetchData();
+  };
+
+  const handleDipstickSubmit = async () => {
+    const { error } = await supabase
+      .from('dipstick_logs')
+      .insert([{
+        attendant_name: user.name,
+        super_mm: parseFloat(dipstick.Super),
+        diesel_mm: parseFloat(dipstick.Diesel),
+        kerosene_mm: parseFloat(dipstick.Kerosene)
+      }]);
+    if (!error) {
+      alert("Morning Tank Levels Recorded!");
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Insert a log for every active pump to keep the database synced
+    // Creating individual shift entries for each active pump
     const submissionPromises = pumps.filter(p => p.is_active).map(p => {
       return supabase.from('shift_logs').insert([{
         attendant_name: user.name,
@@ -90,19 +163,24 @@ const Dashboard = ({ user, onLogout }) => {
     if (!results.some(res => res.error)) {
       alert("Shift Successfully Finalized!");
       window.location.reload();
-    } else {
-      alert("Error saving data. Please check connection.");
     }
   };
 
+  // --- 5. INTERFACE RENDERING ---
   return (
     <div className="dashboard-wrapper">
-      {/* --- SIDEBAR NAVIGATION (Exact Copy from image_2fa622.png) --- */}
+      {/* SIDEBAR NAVIGATION SECTION */}
       <aside className="sidebar">
         <div className="sidebar-brand">
           <img src="/logo.png" alt="JC Energy" className="sidebar-logo-img" />
         </div>
         <nav className="sidebar-nav">
+          <button 
+            className={activeTab === 'dipstick' ? 'nav-item active' : 'nav-item'} 
+            onClick={() => setActiveTab('dipstick')}
+          >
+            📏 Morning Dipstick
+          </button>
           <button 
             className={activeTab === 'handover' ? 'nav-item active' : 'nav-item'} 
             onClick={() => setActiveTab('handover')}
@@ -115,7 +193,7 @@ const Dashboard = ({ user, onLogout }) => {
           >
             📜 Shift History
           </button>
-          {/* Management Tab: Only visible to Work ID 001 */}
+          {/* Admin Restricted Management Tab */}
           {user.workId === '001' && (
             <button 
               className={activeTab === 'management' ? 'nav-item active' : 'nav-item'} 
@@ -130,23 +208,40 @@ const Dashboard = ({ user, onLogout }) => {
         </div>
       </aside>
 
-      {/* --- MAIN CONTENT CONTAINER (Exact Copy from image_2f47c6.png) --- */}
       <div className="main-container">
         <header className="station-header">
-          <div className="header-left">
-            <h2 className="portal-title">JC ENERGY PORTAL</h2>
-          </div>
-          <div className="header-right">
-            <div className="welcome-badge">
-                <span className="user-dot"></span>
-                Welcome, <strong>{user.name}</strong>
-            </div>
+          <h2 className="portal-title">JC ENERGY PORTAL</h2>
+          <div className="welcome-badge">
+            <span className="user-dot"></span>
+            Welcome, <strong>{user.name}</strong>
           </div>
         </header>
 
         <main className="content-area">
           
-          {/* 1. HANDOVER TAB */}
+          {/* TAB: DIPSTICK MEASUREMENTS */}
+          {activeTab === 'dipstick' && (
+            <div className="handover-card">
+              <h2 className="section-title">Morning Tank Dipstick Readings</h2>
+              <div className="entry-grid">
+                <div className="status-card">
+                  <p>Super (mm)</p>
+                  <input type="number" onChange={(e) => setDipstick({...dipstick, Super: e.target.value})} />
+                </div>
+                <div className="status-card">
+                  <p>Diesel (mm)</p>
+                  <input type="number" onChange={(e) => setDipstick({...dipstick, Diesel: e.target.value})} />
+                </div>
+                <div className="status-card">
+                  <p>Kerosene (mm)</p>
+                  <input type="number" onChange={(e) => setDipstick({...dipstick, Kerosene: e.target.value})} />
+                </div>
+              </div>
+              <button className="finalize-btn" onClick={handleDipstickSubmit}>Save Morning Start</button>
+            </div>
+          )}
+
+          {/* TAB: NEW SHIFT HANDOVER */}
           {activeTab === 'handover' && (
             <div className="handover-card">
               <h2 className="section-title">Shift Handover: {selectedPump?.fuel_type}</h2>
@@ -159,7 +254,7 @@ const Dashboard = ({ user, onLogout }) => {
                     onClick={() => setSelectedPump(p)} 
                     className={`${selectedPump?.fuel_type === p.fuel_type ? "fuel-btn active" : "fuel-btn"} ${!p.is_active ? "pump-closed" : ""}`}
                   >
-                    {p.fuel_type}
+                    {p.fuel_type} {!p.is_active && "(CLOSED)"}
                   </button>
                 ))}
               </div>
@@ -178,7 +273,6 @@ const Dashboard = ({ user, onLogout }) => {
                         })} 
                       />
                     </div>
-
                     <div className="status-card">
                       <p>Opening Litres: <strong>{selectedPump.last_litre_reading}</strong></p>
                       <input 
@@ -195,21 +289,23 @@ const Dashboard = ({ user, onLogout }) => {
               )}
 
               <div className={`summary-section ${!areReadingsComplete ? "section-locked" : ""}`}>
-                <h3 className="expected-label">Expected Revenue: <span className="gold-text">KES {expectedRevenue}</span></h3>
+                <h3 className="expected-label">Combined Expected Revenue: <span className="gold-text">KES {expectedRevenue}</span></h3>
                 
                 <div className="cash-inputs">
                   <input 
                     type="number" placeholder="Actual Cash" 
+                    disabled={!areReadingsComplete}
                     onChange={(e) => setClosingFunds({...closingFunds, cash: e.target.value})} 
                   />
                   <input 
                     type="number" placeholder="Actual Till" 
+                    disabled={!areReadingsComplete}
                     onChange={(e) => setClosingFunds({...closingFunds, till: e.target.value})} 
                   />
                 </div>
                 
                 <div className="balance-display">
-                  <h2 style={{ color: balance < 0 ? '#ff4d4d' : '#4dff4d' }}>
+                  <h2 style={{ color: parseFloat(balance) < 0 ? '#ff4d4d' : '#4dff4d' }}>
                     Balance: KES {balance}
                   </h2>
                 </div>
@@ -225,66 +321,88 @@ const Dashboard = ({ user, onLogout }) => {
             </div>
           )}
 
-          {/* 2. HISTORY TAB */}
-          {activeTab === 'history' && (
-            <div className="history-card">
-              <h2 className="section-title">Shift History</h2>
-              <div className="history-table-wrapper">
-                <table className="history-table">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Attendant</th>
-                      <th>Fuel</th>
-                      <th>Expected (KES)</th>
-                      <th>Collected (KES)</th>
-                      <th>Difference</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {history.map((log, index) => (
-                      <tr key={index}>
-                        <td>{new Date(log.created_at).toLocaleDateString()}</td>
-                        <td>{log.attendant_name}</td>
-                        <td>{log.fuel_type}</td>
-                        <td>{log.expected_total}</td>
-                        <td>{log.total_collected}</td>
-                        <td style={{ color: log.difference < 0 ? '#ff4d4d' : '#4dff4d', fontWeight: 'bold' }}>
-                          {log.difference}
-                        </td>
-                      </tr>
+          {/* TAB: MANAGEMENT COMMAND CENTER */}
+          {activeTab === 'management' && (
+            <div className="management-card">
+              <h2 className="section-title">Admin Management</h2>
+              <div className="management-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
+                
+                <div className="manage-box">
+                  <h3>Staff & IDs</h3>
+                  <div className="staff-list">
+                    {staff.map(s => (
+                      <div key={s.id} className="admin-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                        <span>{s.name}</span>
+                        <input 
+                          type="text" 
+                          defaultValue={s.work_id} 
+                          onBlur={(e) => updateStaffId(s.id, e.target.value)} 
+                          style={{ width: '80px' }}
+                        />
+                      </div>
                     ))}
-                  </tbody>
-                </table>
+                  </div>
+                </div>
+
+                <div className="manage-box">
+                  <h3>Pump Control</h3>
+                  {pumps.map(p => (
+                    <div key={p.id} className="admin-row" style={{ border: '1px solid #333', padding: '10px', marginBottom: '10px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <strong>{p.fuel_type}</strong>
+                        <button 
+                          onClick={() => togglePumpStatus(p)} 
+                          className={p.is_active ? 'btn-open' : 'btn-closed'}
+                        >
+                          {p.is_active ? 'OPEN' : 'CLOSED'}
+                        </button>
+                      </div>
+                      <div style={{ marginTop: '10px' }}>
+                        <label>Price: </label>
+                        <input 
+                          type="number" 
+                          defaultValue={p.unit_price} 
+                          onBlur={(e) => updatePrice(p.id, e.target.value)} 
+                          style={{ width: '100px' }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}
 
-          {/* 3. MANAGEMENT TAB */}
-          {activeTab === 'management' && (
-            <div className="management-card">
-              <h2 className="section-title">Pump & Price Control</h2>
-              <div className="management-list">
-                {pumps.map((p) => (
-                  <div key={p.id} className="pump-manage-item">
-                    <div className="pump-info">
-                      <h3>{p.fuel_type}</h3>
-                      <p>Current: <strong>KES {p.unit_price}</strong></p>
-                    </div>
-                    <div className="manage-actions">
-                      <button 
-                        className={`status-toggle ${p.is_active ? 'active-green' : 'closed-red'}`}
-                        onClick={async () => {
-                          await supabase.from('pumps').update({ is_active: !p.is_active }).eq('id', p.id);
-                          window.location.reload();
-                        }}
-                      >
-                        {p.is_active ? "OPEN" : "CLOSED"}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+          {/* TAB: SHIFT HISTORY LOGS */}
+          {activeTab === 'history' && (
+            <div className="history-card">
+              <h2 className="section-title">Shift History</h2>
+              <table className="history-table" style={{ width: '100%' }}>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Attendant</th>
+                    <th>Fuel</th>
+                    <th>Expected</th>
+                    <th>Collected</th>
+                    <th>Diff</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {history.map((log, index) => (
+                    <tr key={index}>
+                      <td>{new Date(log.created_at).toLocaleDateString()}</td>
+                      <td>{log.attendant_name}</td>
+                      <td>{log.fuel_type}</td>
+                      <td>{log.expected_total}</td>
+                      <td>{log.total_collected}</td>
+                      <td style={{ color: log.difference < 0 ? '#ff4d4d' : '#4dff4d', fontWeight: 'bold' }}>
+                        {log.difference}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
 
