@@ -215,3 +215,34 @@ input {
   background: #ff4d4d;
   color: white;
 }
+/* RESTORE: Parallel Inputs */
+.cash-inputs {
+  display: flex;
+  gap: 15px;
+  margin-top: 10px;
+}
+
+.cash-inputs input {
+  flex: 1; /* Makes them equal width side-by-side */
+}
+
+/* RESTORE: Gold & Bold Buttons */
+.finalize-btn, .login-box button {
+  background-color: var(--station-gold) !important;
+  color: var(--forest-green) !important;
+  font-weight: 800 !important;
+  font-size: 1.1rem !important;
+  padding: 14px !important;
+  border-radius: 8px !important;
+  text-transform: uppercase;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 20px;
+}
+
+/* Sidebar active state color */
+.nav-item.active {
+  background-color: var(--station-gold) !important;
+  color: var(--forest-green) !important;
+}

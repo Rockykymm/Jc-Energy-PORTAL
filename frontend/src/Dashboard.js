@@ -3,7 +3,7 @@ import { supabase } from './supabaseClient';
 import './App.css';
 
 const Dashboard = ({ user, onLogout }) => {
-  const [activeTab, setActiveTab] = useState('handover'); // Added state for Sidebar navigation
+  const [activeTab, setActiveTab] = useState('handover'); 
   const [fuelType, setFuelType] = useState('Super');
   const [readings, setReadings] = useState({ opening_meter: 0, opening_litres: 0, price: 0 });
   const [closing, setClosing] = useState({ meter: '', litres: '', cash: '', till: '' });
@@ -78,6 +78,16 @@ const Dashboard = ({ user, onLogout }) => {
           >
             📜 Shift History
           </button>
+
+          {/* MANAGEMENT ACCESS: Only visible to Work ID 001 */}
+          {user.workId === '001' && (
+            <button 
+              className={activeTab === 'management' ? 'nav-item active' : 'nav-item'} 
+              onClick={() => setActiveTab('management')}
+            >
+              ⚙️ Management
+            </button>
+          )}
         </nav>
         <div className="sidebar-footer">
           <button className="logout-sidebar" onClick={onLogout}>Logout</button>
@@ -101,7 +111,6 @@ const Dashboard = ({ user, onLogout }) => {
 
         <main className="content-area">
           {activeTab === 'handover' ? (
-            /* EXISTING HANDOVER FORM */
             <div className="handover-card">
               <h2 className="section-title">Shift Handover: {fuelType}</h2>
               
@@ -139,6 +148,7 @@ const Dashboard = ({ user, onLogout }) => {
                 <div className="summary-section">
                   <h3 className="expected-label">Expected Revenue: <span className="gold-text">KES {expectedRevenue}</span></h3>
                   
+                  {/* RESTORED: Parallel Layout for Cash and Till */}
                   <div className="cash-inputs">
                     <input 
                       type="number" 
@@ -166,13 +176,18 @@ const Dashboard = ({ user, onLogout }) => {
                 </button>
               </form>
             </div>
-          ) : (
-            /* SHIFT HISTORY PLACEHOLDER */
+          ) : activeTab === 'history' ? (
             <div className="history-card">
               <h2 className="section-title">Recent Shift Logs</h2>
               <div className="history-table-container">
-                <p>Loading your shift history from Supabase...</p>
+                <p>Fetching your shift records...</p>
               </div>
+            </div>
+          ) : (
+            /* MANAGEMENT CONTENT AREA */
+            <div className="management-card">
+              <h2 className="section-title">Management Dashboard</h2>
+              <p>Oversight tools for station sales and attendants.</p>
             </div>
           )}
         </main>
