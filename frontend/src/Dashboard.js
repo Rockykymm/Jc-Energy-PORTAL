@@ -112,17 +112,30 @@ const Dashboard = ({ user, onLogout }) => {
             </div>
 
             <div className="summary-section">
-              <h3 className="expected-label">Expected Revenue: <span className="gold-text">KES {expectedRevenue}</span></h3>
-              <div className="cash-inputs">
-                <input type="number" placeholder="Actual Cash" onChange={(e) => setClosing({...closing, cash: e.target.value})} required />
-                <input type="number" placeholder="Actual Till" onChange={(e) => setClosing({...closing, till: e.target.value})} required />
-              </div>
-              
-              <div className="balance-display">
-                <h2 style={{ color: balance < 0 ? '#ff4d4d' : '#4dff4d' }}>
-                  {balance < 0 ? `Shortage: KES ${Math.abs(balance)}` : `Balance: KES ${balance}`}
-                </h2>
-              </div>
+  <h3 className="expected-label">Expected Revenue: <span className="gold-text">KES {expectedRevenue}</span></h3>
+  
+  {/* This is the new parallel layout wrapper */}
+  <div className="cash-inputs">
+    <input 
+      type="number" 
+      placeholder="Actual Cash" 
+      onChange={(e) => setClosing({...closing, cash: e.target.value})} 
+      required 
+    />
+    <input 
+      type="number" 
+      placeholder="Actual Till" 
+      onChange={(e) => setClosing({...closing, till: e.target.value})} 
+      required 
+    />
+  </div>
+  
+  <div className="balance-display">
+    <h2 style={{ color: balance < 0 ? '#ff4d4d' : '#4dff4d' }}>
+      {balance < 0 ? `Shortage: KES ${Math.abs(balance)}` : `Balance: KES ${balance}`}
+    </h2>
+  </div>
+</div>
             </div>
 
             <button type="submit" className="finalize-btn">
