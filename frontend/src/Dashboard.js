@@ -13,6 +13,9 @@ const Dashboard = ({ user, onLogout }) => {
   // NEW: Filtering state for Manager Audit
   const [filterEmployee, setFilterEmployee] = useState(null);
 
+  // ADDED: Search state for History Tab
+  const [searchQuery, setSearchQuery] = useState('');
+
   // Detailed individual readings for all fuel types
   const [allReadings, setAllReadings] = useState({
     Super: { meter: '', litres: '' },
@@ -246,6 +249,7 @@ const Dashboard = ({ user, onLogout }) => {
             onClick={() => {
               setActiveTab('history');
               setFilterEmployee(null); // Reset audit when clicking manually
+              setSearchQuery(''); // Reset search
             }}
           >
             📜 Shift History
@@ -527,15 +531,33 @@ const Dashboard = ({ user, onLogout }) => {
                 <h2 className="section-title">
                   {filterEmployee ? `Audit Records: ${filterEmployee}` : "Shift History"}
                 </h2>
-                {filterEmployee && (
-                  <button 
-                    onClick={() => setFilterEmployee(null)}
-                    className="clear-filter-btn"
-                    style={{ padding: '5px 15px', background: 'var(--station-gold)', color: '#000', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
-                  >
-                    Show All Staff
-                  </button>
-                )}
+                
+                {/* ADDED: Search Bar UI */}
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  <input 
+                    type="text" 
+                    placeholder="Search name, fuel, or date..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    style={{ 
+                      padding: '8px 12px', 
+                      borderRadius: '4px', 
+                      border: '1px solid #333', 
+                      background: '#1a1a1a', 
+                      color: '#fff',
+                      width: '250px'
+                    }}
+                  />
+                  {filterEmployee && (
+                    <button 
+                      onClick={() => setFilterEmployee(null)}
+                      className="clear-filter-btn"
+                      style={{ padding: '8px 15px', background: 'var(--station-gold)', color: '#000', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+                    >
+                      Show All Staff
+                    </button>
+                  )}
+                </div>
               </div>
               
               <table className="history-table" style={{ width: '100%' }}>
@@ -555,11 +577,19 @@ const Dashboard = ({ user, onLogout }) => {
                 <tbody className="history-tbody">
                   {history
                     .filter(log => {
-                       // LOGIC: Manager audits selected person OR sees everyone. Attendants ONLY see themselves.
-                       if (user.workId === '001') {
-                         return !filterEmployee || log.attendant_name === filterEmployee;
-                       }
-                       return log.attendant_name === user.name;
+                        // Manager audits selected person OR sees everyone. Attendants ONLY see themselves.
+                        const matchesUser = user.workId === '001' 
+                          ? (!filterEmployee || log.attendant_name === filterEmployee)
+                          : log.attendant_name === user.name;
+                        
+                        // NEW: Add Search Logic to the filter
+                        const lowerSearch = searchQuery.toLowerCase();
+                        const matchesSearch = 
+                          log.attendant_name?.toLowerCase().includes(lowerSearch) ||
+                          log.fuel_type?.toLowerCase().includes(lowerSearch) ||
+                          new Date(log.created_at).toLocaleString().toLowerCase().includes(lowerSearch);
+
+                        return matchesUser && matchesSearch;
                     })
                     .map((log, index, filteredArray) => {
                     // Important: The grouping logic must now use the filteredArray to keep rowspans accurate
