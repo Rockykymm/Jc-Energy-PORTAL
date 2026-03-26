@@ -382,7 +382,7 @@ const Dashboard = ({ user, onLogout }) => {
             </div>
           )}
 
-          {/* TAB: SHIFT HISTORY LOGS - MERGED GROUPING LOGIC */}
+          {/* TAB: SHIFT HISTORY LOGS */}
           {activeTab === 'history' && (
             <div className="history-card">
               <h2 className="section-title">Shift History</h2>
@@ -395,16 +395,15 @@ const Dashboard = ({ user, onLogout }) => {
                     <th>Start → End (L)</th>
                     <th>Pump Sub-Total</th>
                     <th>Shift Total (Major)</th>
-                    <th>Cash + Till</th>
+                    <th>Cash</th>
+                    <th>Till</th>
                     <th>Status</th>
                   </tr>
                 </thead>
                 <tbody className="history-tbody">
                   {history.map((log, index) => {
-                    // Start of Grouping Logic
                     const isFirstInShift = index === 0 || log.created_at !== history[index - 1]?.created_at;
                     const shiftRowCount = history.filter(item => item.created_at === log.created_at).length;
-                    // End of Grouping Logic
 
                     let statusText = "Balanced";
                     let statusClass = "balanced-text";
@@ -418,12 +417,16 @@ const Dashboard = ({ user, onLogout }) => {
 
                     return (
                       <tr key={index}>
-                        {isFirstInShift ? (
-                          <td rowSpan={shiftRowCount} style={{ verticalAlign: 'middle' }}>{new Date(log.created_at).toLocaleString()}</td>
-                        ) : null}
-                        {isFirstInShift ? (
-                          <td rowSpan={shiftRowCount} style={{ verticalAlign: 'middle' }}>{log.attendant_name}</td>
-                        ) : null}
+                        {isFirstInShift && (
+                          <td rowSpan={shiftRowCount} style={{ verticalAlign: 'middle' }}>
+                            {new Date(log.created_at).toLocaleString()}
+                          </td>
+                        )}
+                        {isFirstInShift && (
+                          <td rowSpan={shiftRowCount} style={{ verticalAlign: 'middle' }}>
+                            {log.attendant_name}
+                          </td>
+                        )}
                         
                         <td style={{ fontWeight: 'bold' }}>{log.fuel_type}</td>
                         <td>{log.pump_reading_start} → {log.pump_reading_end}</td>
@@ -431,9 +434,18 @@ const Dashboard = ({ user, onLogout }) => {
                         
                         {isFirstInShift ? (
                           <>
-                            <td rowSpan={shiftRowCount} style={{ verticalAlign: 'middle', fontWeight: '800' }}>KSh {log.combined_shift_total?.toLocaleString()}</td>
-                            <td rowSpan={shiftRowCount} style={{ verticalAlign: 'middle' }}>{log.actual_cash} + {log.actual_till}</td>
-                            <td rowSpan={shiftRowCount} className={statusClass} style={{ verticalAlign: 'middle' }}><strong>{statusText}</strong></td>
+                            <td rowSpan={shiftRowCount} style={{ verticalAlign: 'middle', fontWeight: '800' }}>
+                              KSh {log.combined_shift_total?.toLocaleString()}
+                            </td>
+                            <td rowSpan={shiftRowCount} style={{ verticalAlign: 'middle', color: '#4dff4d' }}>
+                              KSh {log.actual_cash?.toLocaleString()}
+                            </td>
+                            <td rowSpan={shiftRowCount} style={{ verticalAlign: 'middle', color: '#4db8ff' }}>
+                              KSh {log.actual_till?.toLocaleString()}
+                            </td>
+                            <td rowSpan={shiftRowCount} className={statusClass} style={{ verticalAlign: 'middle' }}>
+                              <strong>{statusText}</strong>
+                            </td>
                           </>
                         ) : null}
                       </tr>
