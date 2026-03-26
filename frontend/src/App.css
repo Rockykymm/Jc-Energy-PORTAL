@@ -123,10 +123,14 @@ input {
   color: black;
   margin-top: 10px;
   width: 100%;
-}
+} 
 
 .logout-btn-small {
   background: transparent;
   border: 1px solid var(--station-gold);
   color: var(--station-gold);
   padding: 6px 15px;
+  border-radius: 6px;
+  margin-left: 15px;
+  cursor: pointer;
+}
