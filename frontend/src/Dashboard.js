@@ -135,12 +135,30 @@ const Dashboard = ({ user, onLogout }) => {
     if (!error) fetchData();
   };
 
-  const updateStaffId = async (id, newId) => {
+  // ADDED: Staff Management Actions
+  const updateStaffMember = async (id, field, value) => {
     const { error } = await supabase
       .from('staff')
-      .update({ work_id: newId })
+      .update({ [field]: value })
       .eq('id', id);
     if (!error) fetchData();
+  };
+
+  const addNewStaff = async () => {
+    const { error } = await supabase
+      .from('staff')
+      .insert([{ name: 'New Employee', work_id: '000' }]);
+    if (!error) fetchData();
+  };
+
+  const removeStaff = async (id) => {
+    if(window.confirm("Are you sure you want to remove this employee?")) {
+      const { error } = await supabase
+        .from('staff')
+        .delete()
+        .eq('id', id);
+      if (!error) fetchData();
+    }
   };
 
   const togglePumpStatus = async (p) => {
@@ -372,7 +390,7 @@ const Dashboard = ({ user, onLogout }) => {
             </div>
           )}
 
-          {/* ADDED: TAB: DAILY REPORTS SUMMARY */}
+          {/* TAB: DAILY REPORTS SUMMARY */}
           {activeTab === 'reports' && (
             <div className="history-card">
               <h2 className="section-title">Daily Performance Summary</h2>
@@ -411,25 +429,48 @@ const Dashboard = ({ user, onLogout }) => {
               <h2 className="section-title">Admin Management</h2>
               <div className="management-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
                 
-                <div className="manage-box">
-                  <h3>Staff & IDs</h3>
-                  <div className="staff-list">
+                {/* Section 1: Staff & Employees */}
+                <div className="manage-box" style={{ background: '#1a1a1a', padding: '20px', borderRadius: '8px' }}>
+                  <h3 style={{ color: 'var(--station-gold)', marginBottom: '15px' }}>Staff Management</h3>
+                  <div className="staff-list" style={{ maxHeight: '400px', overflowY: 'auto' }}>
                     {staff.map(s => (
-                      <div key={s.id} className="admin-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                        <span>{s.name}</span>
-                        <input 
-                          type="text" 
-                          defaultValue={s.work_id} 
-                          onBlur={(e) => updateStaffId(s.id, e.target.value)} 
-                          style={{ width: '80px' }}
-                        />
+                      <div key={s.id} className="admin-row" style={{ borderBottom: '1px solid #333', paddingBottom: '10px', marginBottom: '15px' }}>
+                        <div style={{ display: 'flex', gap: '10px', marginBottom: '8px' }}>
+                           <input 
+                            type="text" 
+                            defaultValue={s.name} 
+                            placeholder="Name"
+                            onBlur={(e) => updateStaffMember(s.id, 'name', e.target.value)} 
+                            style={{ flex: 2, padding: '5px' }}
+                          />
+                          <input 
+                            type="text" 
+                            defaultValue={s.work_id} 
+                            placeholder="ID"
+                            onBlur={(e) => updateStaffMember(s.id, 'work_id', e.target.value)} 
+                            style={{ flex: 1, padding: '5px' }}
+                          />
+                        </div>
+                        <button 
+                          onClick={() => removeStaff(s.id)}
+                          style={{ background: 'transparent', color: '#ff4d4d', border: 'none', cursor: 'pointer', fontSize: '0.8rem' }}
+                        >
+                          Remove Employee
+                        </button>
                       </div>
                     ))}
                   </div>
+                  <button 
+                    onClick={addNewStaff} 
+                    style={{ width: '100%', padding: '10px', background: 'var(--station-gold)', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', marginTop: '10px' }}
+                  >
+                    + Add New Employee
+                  </button>
                 </div>
 
-                <div className="manage-box">
-                  <h3>Pump Control</h3>
+                {/* Section 2: Pumps */}
+                <div className="manage-box" style={{ background: '#1a1a1a', padding: '20px', borderRadius: '8px' }}>
+                  <h3 style={{ color: 'var(--station-gold)', marginBottom: '15px' }}>Pump Settings</h3>
                   {pumps.map(p => (
                     <div key={p.id} className="admin-row" style={{ border: '1px solid #333', padding: '10px', marginBottom: '10px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
