@@ -19,26 +19,26 @@ function App() {
   return (
     <div className="App">
       {!isLoggedIn ? (
-        /* --- BRANDED LOGIN SCREEN --- */
         <div className="login-container">
           <div className="login-box">
-            {/* 1. Using your new logo here */}
-            <img src="/logo.png" alt="JC Energy Logo" className="splash-logo" />
-            <h1>JC ENERGY PORTAL</h1>
+            {/* Logo is now small and aligned with the title */}
+            <div className="login-header-inline">
+               <img src="/logo.png" alt="JC" className="mini-login-logo" />
+               <h1 className="login-title">JC ENERGY PORTAL</h1>
+            </div>
             <p className="subtitle">Advanced Monitoring & Management Interface</p>
             
             <input type="text" placeholder="Enter Work ID (e.g. 001)" />
             <button 
               className="btn-primary" 
-              onClick={() => handleLogin('Peter Kimani')} // Passing string directly for your dashboard logic
+              onClick={() => handleLogin({ name: 'Peter Kimani', role: 'admin' })}
             >
               Login
             </button>
           </div>
         </div>
       ) : (
-        /* --- BRANDED DASHBOARD --- */
-        /* Note: We removed the extra header here because the Sidebar now handles it */
+        /* Logic stays same: passing user and logout function to Dashboard */
         <Dashboard user={user} onLogout={handleLogout} />
       )}
     </div>
