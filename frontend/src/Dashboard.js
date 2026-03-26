@@ -3,6 +3,7 @@ import { supabase } from './supabaseClient';
 import './App.css';
 
 const Dashboard = ({ user, onLogout }) => {
+  const [activeTab, setActiveTab] = useState('handover'); // Added state for Sidebar navigation
   const [fuelType, setFuelType] = useState('Super');
   const [readings, setReadings] = useState({ opening_meter: 0, opening_litres: 0, price: 0 });
   const [closing, setClosing] = useState({ meter: '', litres: '', cash: '', till: '' });
@@ -58,92 +59,124 @@ const Dashboard = ({ user, onLogout }) => {
   };
 
   return (
-    <div className="dashboard-container">
-      {/* BRANDED HEADER BAR */}
-      <header className="station-header">
-        <div className="header-left">
-          <img src="/logo.png" alt="JC Energy" className="header-logo" />
-          <h2 className="portal-title">JC ENERGY PORTAL</h2>
+    <div className="dashboard-wrapper">
+      {/* 1. SIDEBAR NAVIGATION */}
+      <aside className="sidebar">
+        <div className="sidebar-brand">
+          <img src="/logo.png" alt="JC Energy" className="sidebar-logo-img" />
         </div>
-        
-        <div className="header-right">
-          <div className="welcome-badge">
-             <span className="user-dot"></span>
-             Welcome, <strong>{user.name}</strong>
-          </div>
-          <button className="logout-btn-small" onClick={onLogout}>Logout</button>
+        <nav className="sidebar-nav">
+          <button 
+            className={activeTab === 'handover' ? 'nav-item active' : 'nav-item'} 
+            onClick={() => setActiveTab('handover')}
+          >
+            📂 New Handover
+          </button>
+          <button 
+            className={activeTab === 'history' ? 'nav-item active' : 'nav-item'} 
+            onClick={() => setActiveTab('history')}
+          >
+            📜 Shift History
+          </button>
+        </nav>
+        <div className="sidebar-footer">
+          <button className="logout-sidebar" onClick={onLogout}>Logout</button>
         </div>
-      </header>
+      </aside>
 
-      {/* MAIN CONTENT AREA */}
-      <main className="content-area">
-        <div className="handover-card">
-          <h2 className="section-title">Shift Handover: {fuelType}</h2>
+      {/* 2. MAIN CONTENT AREA */}
+      <div className="main-container">
+        <header className="station-header">
+          <div className="header-left">
+            <h2 className="portal-title">JC ENERGY PORTAL</h2>
+          </div>
           
-          <div className="pump-selector">
-            {['Super', 'Diesel', 'Kerosene'].map(type => (
-              <button 
-                key={type} 
-                onClick={() => setFuelType(type)} 
-                className={fuelType === type ? "fuel-btn active" : "fuel-btn"}
-              >
-                {type}
-              </button>
-            ))}
+          <div className="header-right">
+            <div className="welcome-badge">
+                <span className="user-dot"></span>
+                Welcome, <strong>{user.name}</strong>
+            </div>
           </div>
+        </header>
 
-          <form onSubmit={handleSubmit} className="entry-form">
-            <div className="entry-grid">
-              <div className="status-card meter-card">
-                <p>Opening Meter: <strong>{readings.opening_meter}</strong></p>
-                <input 
-                  type="number" step="0.01" placeholder="Enter Closing Meter" 
-                  onChange={(e) => setClosing({...closing, meter: e.target.value})} required 
-                />
+        <main className="content-area">
+          {activeTab === 'handover' ? (
+            /* EXISTING HANDOVER FORM */
+            <div className="handover-card">
+              <h2 className="section-title">Shift Handover: {fuelType}</h2>
+              
+              <div className="pump-selector">
+                {['Super', 'Diesel', 'Kerosene'].map(type => (
+                  <button 
+                    key={type} 
+                    onClick={() => setFuelType(type)} 
+                    className={fuelType === type ? "fuel-btn active" : "fuel-btn"}
+                  >
+                    {type}
+                  </button>
+                ))}
               </div>
 
-              <div className="status-card litres-card">
-                <p>Opening Litres: <strong>{readings.opening_litres}</strong></p>
-                <input 
-                  type="number" step="0.01" placeholder="Enter Closing Litres" 
-                  onChange={(e) => setClosing({...closing, litres: e.target.value})} required 
-                />
+              <form onSubmit={handleSubmit} className="entry-form">
+                <div className="entry-grid">
+                  <div className="status-card meter-card">
+                    <p>Opening Meter: <strong>{readings.opening_meter}</strong></p>
+                    <input 
+                      type="number" step="0.01" placeholder="Enter Closing Meter" 
+                      onChange={(e) => setClosing({...closing, meter: e.target.value})} required 
+                    />
+                  </div>
+
+                  <div className="status-card litres-card">
+                    <p>Opening Litres: <strong>{readings.opening_litres}</strong></p>
+                    <input 
+                      type="number" step="0.01" placeholder="Enter Closing Litres" 
+                      onChange={(e) => setClosing({...closing, litres: e.target.value})} required 
+                    />
+                  </div>
+                </div>
+
+                <div className="summary-section">
+                  <h3 className="expected-label">Expected Revenue: <span className="gold-text">KES {expectedRevenue}</span></h3>
+                  
+                  <div className="cash-inputs">
+                    <input 
+                      type="number" 
+                      placeholder="Actual Cash" 
+                      onChange={(e) => setClosing({...closing, cash: e.target.value})} 
+                      required 
+                    />
+                    <input 
+                      type="number" 
+                      placeholder="Actual Till" 
+                      onChange={(e) => setClosing({...closing, till: e.target.value})} 
+                      required 
+                    />
+                  </div>
+                  
+                  <div className="balance-display">
+                    <h2 style={{ color: balance < 0 ? '#ff4d4d' : '#4dff4d' }}>
+                      {balance < 0 ? `Shortage: KES ${Math.abs(balance)}` : `Balance: KES ${balance}`}
+                    </h2>
+                  </div>
+                </div>
+
+                <button type="submit" className="finalize-btn">
+                  Finalize Shift & Submit
+                </button>
+              </form>
+            </div>
+          ) : (
+            /* SHIFT HISTORY PLACEHOLDER */
+            <div className="history-card">
+              <h2 className="section-title">Recent Shift Logs</h2>
+              <div className="history-table-container">
+                <p>Loading your shift history from Supabase...</p>
               </div>
             </div>
-
-            <div className="summary-section">
-  <h3 className="expected-label">Expected Revenue: <span className="gold-text">KES {expectedRevenue}</span></h3>
-  
-  {/* This is the new parallel layout wrapper */}
-  <div className="cash-inputs">
-    <input 
-      type="number" 
-      placeholder="Actual Cash" 
-      onChange={(e) => setClosing({...closing, cash: e.target.value})} 
-      required 
-    />
-    <input 
-      type="number" 
-      placeholder="Actual Till" 
-      onChange={(e) => setClosing({...closing, till: e.target.value})} 
-      required 
-    />
-  </div>
-  
-  <div className="balance-display">
-    <h2 style={{ color: balance < 0 ? '#ff4d4d' : '#4dff4d' }}>
-      {balance < 0 ? `Shortage: KES ${Math.abs(balance)}` : `Balance: KES ${balance}`}
-    </h2>
-  </div>
-</div>
-            </div>
-
-            <button type="submit" className="finalize-btn">
-              Finalize Shift & Submit
-            </button>
-          </form>
-        </div>
-      </main>
+          )}
+        </main>
+      </div>
     </div>
   );
 };
