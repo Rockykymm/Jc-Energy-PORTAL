@@ -388,20 +388,34 @@ const Dashboard = ({ user, onLogout }) => {
                     <th>Diff</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {history.map((log, index) => (
-                    <tr key={index}>
-                      <td>{new Date(log.created_at).toLocaleDateString()}</td>
-                      <td>{log.attendant_name}</td>
-                      <td>{log.fuel_type}</td>
-                      <td>{log.expected_total}</td>
-                      <td>{log.total_collected}</td>
-                      <td style={{ color: log.difference < 0 ? '#ff4d4d' : '#4dff4d', fontWeight: 'bold' }}>
-                        {log.difference}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
+                <tbody className="history-tbody">
+  {history.map((log, index) => {
+    // Determine the status label and the color class
+    let statusText = "Balanced";
+    let statusClass = "balanced-text";
+
+    if (log.difference < 0) {
+      statusText = `Short (${log.difference})`;
+      statusClass = "shortage-text";
+    } else if (log.difference > 0) {
+      statusText = `Excess (+${log.difference})`;
+      statusClass = "excess-text";
+    }
+
+    return (
+      <tr key={index}>
+        <td>{new Date(log.created_at).toLocaleDateString()}</td>
+        <td>{log.attendant_name}</td>
+        <td>{log.fuel_type}</td>
+        <td>{log.expected_total}</td>
+        <td>{log.total_collected}</td>
+        <td className={statusClass}>
+          <strong>{statusText}</strong>
+        </td>
+      </tr>
+    );
+  })}
+</tbody>
               </table>
             </div>
           )}

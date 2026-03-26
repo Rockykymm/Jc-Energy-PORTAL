@@ -246,3 +246,66 @@ input {
   background-color: var(--station-gold) !important;
   color: var(--forest-green) !important;
 }
+/* --- 6. Shift History Table (Restoring the Neat Grid) --- */
+.history-table {
+  width: 95%;
+  margin: 20px auto;
+  border-collapse: collapse; /* Removes the double-border look */
+  background-color: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--station-gold);
+  border-radius: 8px;
+  overflow: hidden; /* Keeps corners rounded */
+}
+
+.history-table th {
+  background-color: #05261e; /* Slightly darker than forest-green */
+  color: var(--station-gold);
+  padding: 15px;
+  text-align: left;
+  border-bottom: 2px solid var(--station-gold);
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+}
+
+.history-table td {
+  padding: 12px 15px;
+  border-bottom: 1px solid rgba(252, 196, 25, 0.2); /* Subtle gold lines */
+  color: var(--clean-white);
+  font-size: 0.95rem;
+}
+
+.history-table tr:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* --- 7. Status Text Colors --- */
+.shortage-text { 
+  color: #ff4d4d !important; /* Bright Red */
+  font-weight: bold;
+}
+
+.excess-text { 
+  color: #4dff4d !important; /* Bright Green */
+  font-weight: bold;
+}
+
+.balanced-text { 
+  color: var(--clean-white);
+  opacity: 0.8;
+}
+
+/* --- 8. Management Tab Styling --- */
+.management-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  padding: 20px;
+}
+
+.pump-settings-card {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 20px;
+  border-radius: 10px;
+  border: 1px solid rgba(252, 196, 25, 0.3);
+}
