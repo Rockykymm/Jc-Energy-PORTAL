@@ -141,28 +141,37 @@ const Dashboard = ({ user, onLogout }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Creating individual shift entries for each active pump
+  
+    // 1. Calculate the Major Total (Sum of all active pump revenues)
+    const majorTotal = pumps
+      .filter(p => p.is_active)
+      .reduce((sum, p) => sum + parseFloat(expectedRevenue || 0), 0);
+  
+    // 2. Create the submission entries for each active pump
     const submissionPromises = pumps.filter(p => p.is_active).map(p => {
       return supabase.from('shift_logs').insert([{
         attendant_name: user.name,
         fuel_type: p.fuel_type,
-        meter_reading_start: p.last_meter_reading,
-        meter_reading_end: parseFloat(allReadings[p.fuel_type].meter),
-        pump_reading_start: p.last_litre_reading,
-        pump_reading_end: parseFloat(allReadings[p.fuel_type].litres),
-        cash: parseFloat(closingFunds.cash),
-        till: parseFloat(closingFunds.till),
-        expected_total: parseFloat(expectedRevenue),
+        pump_reading_start: p.last_meter_reading,
+        pump_reading_end: parseFloat(allReadings[p.fuel_type].meter),
+        expected_total: parseFloat(expectedRevenue), // Sub-total for this pump
+        combined_shift_total: majorTotal, // The Major total for the shift
+        actual_cash: parseFloat(closingFunds.cash) || 0,
+        actual_till: parseFloat(closingFunds.till) || 0,
         total_collected: parseFloat(totalCollected),
         difference: parseFloat(balance)
       }]);
     });
-
+  
+    // 3. Execute all inserts and check for errors
     const results = await Promise.all(submissionPromises);
+    
     if (!results.some(res => res.error)) {
       alert("Shift Successfully Finalized!");
       window.location.reload();
+    } else {
+      alert("Error submitting shift. Please check your connection.");
+      console.error(results.map(res => res.error).filter(Boolean));
     }
   };
 
@@ -378,43 +387,55 @@ const Dashboard = ({ user, onLogout }) => {
             <div className="history-card">
               <h2 className="section-title">Shift History</h2>
               <table className="history-table" style={{ width: '100%' }}>
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Attendant</th>
-                    <th>Fuel</th>
-                    <th>Expected</th>
-                    <th>Collected</th>
-                    <th>Diff</th>
-                  </tr>
-                </thead>
+              <thead>
+  <tr>
+    <th>Date & Time</th>
+    <th>Attendant</th>
+    <th>Pump</th>
+    <th>Start → End (L)</th>
+    <th>Pump Sub-Total</th>
+    <th>Shift Total (Major)</th>
+    <th>Cash + Till</th>
+    <th>Status</th>
+  </tr>
+</thead>
                 <tbody className="history-tbody">
-  {history.map((log, index) => {
-    // Determine the status label and the color class
-    let statusText = "Balanced";
-    let statusClass = "balanced-text";
+                {history.map((log, index) => {
+  // Logic to determine status labels
+  let statusText = "Balanced";
+  let statusClass = "balanced-text";
+  if (log.difference < 0) {
+    statusText = `Short (${log.difference})`;
+    statusClass = "shortage-text";
+  } else if (log.difference > 0) {
+    statusText = `Excess (+${log.difference})`;
+    statusClass = "excess-text";
+  }
 
-    if (log.difference < 0) {
-      statusText = `Short (${log.difference})`;
-      statusClass = "shortage-text";
-    } else if (log.difference > 0) {
-      statusText = `Excess (+${log.difference})`;
-      statusClass = "excess-text";
-    }
-
-    return (
-      <tr key={index}>
-        <td>{new Date(log.created_at).toLocaleDateString()}</td>
-        <td>{log.attendant_name}</td>
-        <td>{log.fuel_type}</td>
-        <td>{log.expected_total}</td>
-        <td>{log.total_collected}</td>
-        <td className={statusClass}>
-          <strong>{statusText}</strong>
-        </td>
-      </tr>
-    );
-  })}
+  return (
+    <tr key={index}>
+      <td>{new Date(log.created_at).toLocaleString()}</td>
+      <td>{log.attendant_name}</td>
+      <td>{log.fuel_type}</td>
+{/* Individual Pump Readings */}
+<td>{log.pump_reading_start} → {log.pump_reading_end}</td>
+      {/* Pump Sub-Total */}
+      <td style={{ color: 'var(--station-gold)' }}>
+        KSh {log.expected_total?.toLocaleString()}
+      </td>
+      {/* Combined Shift Total (Major) */}
+      <td style={{ fontWeight: '800' }}>
+        KSh {log.combined_shift_total?.toLocaleString()}
+      </td>
+      <td>
+        {log.actual_cash} + {log.actual_till}
+      </td>
+      <td className={statusClass}>
+        <strong>{statusText}</strong>
+      </td>
+    </tr>
+  );
+})}
 </tbody>
               </table>
             </div>
