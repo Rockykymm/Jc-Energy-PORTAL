@@ -72,18 +72,23 @@ const Dashboard = ({ user, onLogout }) => {
     fetchData();
   }, []);
 
-  // --- 3. BUSINESS CALCULATIONS (Fully Expanded) ---
+  // --- 3. BUSINESS CALCULATIONS (Updated for True Meter Logic) ---
+  
+  // NEW: Calculate revenue for just the selected pump
+  const calculateSinglePumpRevenue = (fuelType) => {
+    const pump = pumps.find(p => p.fuel_type === fuelType);
+    if (!pump) return 0;
+    const closing = parseFloat(allReadings[fuelType].meter || 0);
+    const opening = parseFloat(pump.last_meter_reading || 0);
+    // Logic: Revenue is strictly the difference in meter readings
+    return closing > opening ? closing - opening : 0;
+  };
+
   const calculateTotalExpected = () => {
     let total = 0;
     pumps.forEach(p => {
       if (p.is_active === true) {
-        const currentClosing = parseFloat(allReadings[p.fuel_type].meter || 0);
-        // Only calculate if the current meter is forward of the last recorded
-        if (currentClosing > p.last_meter_reading) {
-          const consumption = currentClosing - p.last_meter_reading;
-          const revenue = consumption * p.unit_price;
-          total = total + revenue;
-        }
+        total += calculateSinglePumpRevenue(p.fuel_type);
       }
     });
     return total.toFixed(2);
@@ -97,7 +102,7 @@ const Dashboard = ({ user, onLogout }) => {
   const areReadingsComplete = pumps
     .filter(p => p.is_active === true)
     .every(p => {
-      return allReadings[p.fuel_type].meter !== '' && allReadings[p.fuel_type].litres !== '';
+      return allReadings[p.fuel_type].meter !== '';
     });
 
   // --- 4. DATABASE ACTIONS ---
@@ -142,10 +147,8 @@ const Dashboard = ({ user, onLogout }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
   
-    // 1. Calculate the Major Total (Sum of all active pump revenues)
-    const majorTotal = pumps
-      .filter(p => p.is_active)
-      .reduce((sum, p) => sum + parseFloat(expectedRevenue || 0), 0);
+    // 1. Major Total is the combined expected revenue calculated above
+    const majorTotal = parseFloat(expectedRevenue);
   
     // 2. Create the submission entries for each active pump
     const submissionPromises = pumps.filter(p => p.is_active).map(p => {
@@ -154,8 +157,8 @@ const Dashboard = ({ user, onLogout }) => {
         fuel_type: p.fuel_type,
         pump_reading_start: p.last_meter_reading,
         pump_reading_end: parseFloat(allReadings[p.fuel_type].meter),
-        expected_total: parseFloat(expectedRevenue), // Sub-total for this pump
-        combined_shift_total: majorTotal, // The Major total for the shift
+        expected_total: calculateSinglePumpRevenue(p.fuel_type), // Sub-total for this specific pump
+        combined_shift_total: majorTotal, // The Major total for the entire shift
         actual_cash: parseFloat(closingFunds.cash) || 0,
         actual_till: parseFloat(closingFunds.till) || 0,
         total_collected: parseFloat(totalCollected),
@@ -282,10 +285,19 @@ const Dashboard = ({ user, onLogout }) => {
                         })} 
                       />
                     </div>
-                    <div className="status-card">
-                      <p>Opening Litres: <strong>{selectedPump.last_litre_reading}</strong></p>
+                    
+                    {/* NEW: Individual Pump Revenue Display */}
+                    <div className="status-card" style={{ borderLeft: '4px solid var(--station-gold)' }}>
+                      <p>{selectedPump.fuel_type} Sales (Expected)</p>
+                      <h3 style={{ color: 'var(--station-gold)', margin: '10px 0' }}>
+                        KES {calculateSinglePumpRevenue(selectedPump.fuel_type).toLocaleString()}
+                      </h3>
+                    </div>
+
+                    <div className="status-card" style={{ opacity: 0.6 }}>
+                      <p>Last recorded Litres: <strong>{selectedPump.last_litre_reading}</strong></p>
                       <input 
-                        type="number" step="0.01" placeholder="Enter Closing Litres" 
+                        type="number" step="0.01" placeholder="Litres (Optional)" 
                         value={allReadings[selectedPump.fuel_type].litres}
                         onChange={(e) => setAllReadings({
                           ...allReadings, 
@@ -392,8 +404,8 @@ const Dashboard = ({ user, onLogout }) => {
                     <th>Date & Time</th>
                     <th>Attendant</th>
                     <th>Pump</th>
-                    <th>Start → End (L)</th>
-                    <th>Pump Sub-Total</th>
+                    <th>Meter Start → End</th>
+                    <th>Pump Sales</th>
                     <th>Shift Total (Major)</th>
                     <th>Cash</th>
                     <th>Till</th>
