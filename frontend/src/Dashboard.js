@@ -10,6 +10,9 @@ const Dashboard = ({ user, onLogout }) => {
   const [selectedPump, setSelectedPump] = useState(null);
   const [history, setHistory] = useState([]);
   
+  // NEW: Filtering state for Manager Audit
+  const [filterEmployee, setFilterEmployee] = useState(null);
+
   // Detailed individual readings for all fuel types
   const [allReadings, setAllReadings] = useState({
     Super: { meter: '', litres: '' },
@@ -240,7 +243,10 @@ const Dashboard = ({ user, onLogout }) => {
           </button>
           <button 
             className={activeTab === 'history' ? 'nav-item active' : 'nav-item'} 
-            onClick={() => setActiveTab('history')}
+            onClick={() => {
+              setActiveTab('history');
+              setFilterEmployee(null); // Reset audit when clicking manually
+            }}
           >
             📜 Shift History
           </button>
@@ -434,12 +440,21 @@ const Dashboard = ({ user, onLogout }) => {
                   <h3 style={{ color: 'var(--station-gold)', marginBottom: '15px' }}>Staff Management</h3>
                   <div className="staff-list" style={{ maxHeight: '400px', overflowY: 'auto' }}>
                     {staff.map(s => (
-                      <div key={s.id} className="admin-row" style={{ borderBottom: '1px solid #333', paddingBottom: '10px', marginBottom: '15px' }}>
+                      <div 
+                        key={s.id} 
+                        className="admin-row clickable" 
+                        style={{ borderBottom: '1px solid #333', paddingBottom: '10px', marginBottom: '15px', cursor: 'pointer' }}
+                        onClick={() => {
+                           setFilterEmployee(s.name);
+                           setActiveTab('history');
+                        }}
+                      >
                         <div style={{ display: 'flex', gap: '10px', marginBottom: '8px' }}>
                            <input 
                             type="text" 
                             defaultValue={s.name} 
                             placeholder="Name"
+                            onClick={(e) => e.stopPropagation()} // Prevents filter trigger when just editing name
                             onBlur={(e) => updateStaffMember(s.id, 'name', e.target.value)} 
                             style={{ flex: 2, padding: '5px' }}
                           />
@@ -447,16 +462,23 @@ const Dashboard = ({ user, onLogout }) => {
                             type="text" 
                             defaultValue={s.work_id} 
                             placeholder="ID"
+                            onClick={(e) => e.stopPropagation()}
                             onBlur={(e) => updateStaffMember(s.id, 'work_id', e.target.value)} 
                             style={{ flex: 1, padding: '5px' }}
                           />
                         </div>
-                        <button 
-                          onClick={() => removeStaff(s.id)}
-                          style={{ background: 'transparent', color: '#ff4d4d', border: 'none', cursor: 'pointer', fontSize: '0.8rem' }}
-                        >
-                          Remove Employee
-                        </button>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--station-gold)' }}>Click row to audit performance →</span>
+                          <button 
+                            onClick={(e) => {
+                               e.stopPropagation();
+                               removeStaff(s.id);
+                            }}
+                            style={{ background: 'transparent', color: '#ff4d4d', border: 'none', cursor: 'pointer', fontSize: '0.8rem' }}
+                          >
+                            Remove Employee
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -501,7 +523,21 @@ const Dashboard = ({ user, onLogout }) => {
           {/* TAB: SHIFT HISTORY LOGS */}
           {activeTab === 'history' && (
             <div className="history-card">
-              <h2 className="section-title">Shift History</h2>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                <h2 className="section-title">
+                  {filterEmployee ? `Audit Records: ${filterEmployee}` : "Shift History"}
+                </h2>
+                {filterEmployee && (
+                  <button 
+                    onClick={() => setFilterEmployee(null)}
+                    className="clear-filter-btn"
+                    style={{ padding: '5px 15px', background: 'var(--station-gold)', color: '#000', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+                  >
+                    Show All Staff
+                  </button>
+                )}
+              </div>
+              
               <table className="history-table" style={{ width: '100%' }}>
                 <thead>
                   <tr>
@@ -517,9 +553,18 @@ const Dashboard = ({ user, onLogout }) => {
                   </tr>
                 </thead>
                 <tbody className="history-tbody">
-                  {history.map((log, index) => {
-                    const isFirstInShift = index === 0 || log.created_at !== history[index - 1]?.created_at;
-                    const shiftRowCount = history.filter(item => item.created_at === log.created_at).length;
+                  {history
+                    .filter(log => {
+                       // LOGIC: Manager audits selected person OR sees everyone. Attendants ONLY see themselves.
+                       if (user.workId === '001') {
+                         return !filterEmployee || log.attendant_name === filterEmployee;
+                       }
+                       return log.attendant_name === user.name;
+                    })
+                    .map((log, index, filteredArray) => {
+                    // Important: The grouping logic must now use the filteredArray to keep rowspans accurate
+                    const isFirstInShift = index === 0 || log.created_at !== filteredArray[index - 1]?.created_at;
+                    const shiftRowCount = filteredArray.filter(item => item.created_at === log.created_at).length;
 
                     let statusText = "Balanced";
                     let statusClass = "balanced-text";
