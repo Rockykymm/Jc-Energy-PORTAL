@@ -382,61 +382,64 @@ const Dashboard = ({ user, onLogout }) => {
             </div>
           )}
 
-          {/* TAB: SHIFT HISTORY LOGS */}
+          {/* TAB: SHIFT HISTORY LOGS - MERGED GROUPING LOGIC */}
           {activeTab === 'history' && (
             <div className="history-card">
               <h2 className="section-title">Shift History</h2>
               <table className="history-table" style={{ width: '100%' }}>
-              <thead>
-  <tr>
-    <th>Date & Time</th>
-    <th>Attendant</th>
-    <th>Pump</th>
-    <th>Start → End (L)</th>
-    <th>Pump Sub-Total</th>
-    <th>Shift Total (Major)</th>
-    <th>Cash + Till</th>
-    <th>Status</th>
-  </tr>
-</thead>
+                <thead>
+                  <tr>
+                    <th>Date & Time</th>
+                    <th>Attendant</th>
+                    <th>Pump</th>
+                    <th>Start → End (L)</th>
+                    <th>Pump Sub-Total</th>
+                    <th>Shift Total (Major)</th>
+                    <th>Cash + Till</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
                 <tbody className="history-tbody">
-                {history.map((log, index) => {
-  // Logic to determine status labels
-  let statusText = "Balanced";
-  let statusClass = "balanced-text";
-  if (log.difference < 0) {
-    statusText = `Short (${log.difference})`;
-    statusClass = "shortage-text";
-  } else if (log.difference > 0) {
-    statusText = `Excess (+${log.difference})`;
-    statusClass = "excess-text";
-  }
+                  {history.map((log, index) => {
+                    // Start of Grouping Logic
+                    const isFirstInShift = index === 0 || log.created_at !== history[index - 1]?.created_at;
+                    const shiftRowCount = history.filter(item => item.created_at === log.created_at).length;
+                    // End of Grouping Logic
 
-  return (
-    <tr key={index}>
-      <td>{new Date(log.created_at).toLocaleString()}</td>
-      <td>{log.attendant_name}</td>
-      <td>{log.fuel_type}</td>
-{/* Individual Pump Readings */}
-<td>{log.pump_reading_start} → {log.pump_reading_end}</td>
-      {/* Pump Sub-Total */}
-      <td style={{ color: 'var(--station-gold)' }}>
-        KSh {log.expected_total?.toLocaleString()}
-      </td>
-      {/* Combined Shift Total (Major) */}
-      <td style={{ fontWeight: '800' }}>
-        KSh {log.combined_shift_total?.toLocaleString()}
-      </td>
-      <td>
-        {log.actual_cash} + {log.actual_till}
-      </td>
-      <td className={statusClass}>
-        <strong>{statusText}</strong>
-      </td>
-    </tr>
-  );
-})}
-</tbody>
+                    let statusText = "Balanced";
+                    let statusClass = "balanced-text";
+                    if (log.difference < 0) {
+                      statusText = `Short (${log.difference})`;
+                      statusClass = "shortage-text";
+                    } else if (log.difference > 0) {
+                      statusText = `Excess (+${log.difference})`;
+                      statusClass = "excess-text";
+                    }
+
+                    return (
+                      <tr key={index}>
+                        {isFirstInShift ? (
+                          <td rowSpan={shiftRowCount} style={{ verticalAlign: 'middle' }}>{new Date(log.created_at).toLocaleString()}</td>
+                        ) : null}
+                        {isFirstInShift ? (
+                          <td rowSpan={shiftRowCount} style={{ verticalAlign: 'middle' }}>{log.attendant_name}</td>
+                        ) : null}
+                        
+                        <td style={{ fontWeight: 'bold' }}>{log.fuel_type}</td>
+                        <td>{log.pump_reading_start} → {log.pump_reading_end}</td>
+                        <td style={{ color: 'var(--station-gold)' }}>KSh {log.expected_total?.toLocaleString()}</td>
+                        
+                        {isFirstInShift ? (
+                          <>
+                            <td rowSpan={shiftRowCount} style={{ verticalAlign: 'middle', fontWeight: '800' }}>KSh {log.combined_shift_total?.toLocaleString()}</td>
+                            <td rowSpan={shiftRowCount} style={{ verticalAlign: 'middle' }}>{log.actual_cash} + {log.actual_till}</td>
+                            <td rowSpan={shiftRowCount} className={statusClass} style={{ verticalAlign: 'middle' }}><strong>{statusText}</strong></td>
+                          </>
+                        ) : null}
+                      </tr>
+                    );
+                  })}
+                </tbody>
               </table>
             </div>
           )}
