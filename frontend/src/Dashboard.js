@@ -116,7 +116,8 @@ const Dashboard = ({ user, onLogout }) => {
     const summary = {};
 
     history.forEach(log => {
-      const logDate = new Date(log.created_at).toLocaleDateString();
+      const dateObj = new Date(log.created_at);
+      const logDate = dateObj.toLocaleDateString();
       
       if (!summary[logDate]) {
         summary[logDate] = { 
@@ -124,27 +125,25 @@ const Dashboard = ({ user, onLogout }) => {
           totalExpected: 0, 
           totalCash: 0, 
           totalTill: 0, 
-          processedShifts: new Set() // This Set ensures we only count each handover once
+          processedShifts: new Set() 
         };
       }
 
-      // Unique identifier for the shift event
-      const shiftId = log.created_at;
+      const hours = dateObj.getHours();
+      const minutes = dateObj.getMinutes();
+      const shiftId = `${log.attendant_name}-${logDate}-${hours}:${minutes}`;
 
-      // Logic: Only add the money IF we haven't processed this specific timestamp for this day yet
       if (!summary[logDate].processedShifts.has(shiftId)) {
-        summary[logDate].totalExpected += (log.combined_shift_total || 0);
-        summary[logDate].totalCash += (log.actual_cash || 0);
-        summary[logDate].totalTill += (log.actual_till || 0);
+        summary[logDate].totalExpected += (Number(log.combined_shift_total) || 0);
+        summary[logDate].totalCash += (Number(log.actual_cash) || 0);
+        summary[logDate].totalTill += (Number(log.actual_till) || 0);
         
-        // Mark this shift as "counted"
         summary[logDate].processedShifts.add(shiftId);
       }
     });
 
     return Object.values(summary);
   };
-
   // --- 4. DATABASE ACTIONS ---
   const updatePrice = async (id, newPrice) => {
     const { error } = await supabase
