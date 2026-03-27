@@ -357,19 +357,23 @@ const { error: pumpUpdateError } = await supabase
               </div>
 
               {selectedPump && (
-                <div className="active-pump-form">
-                  <div className="entry-grid">
-                    <div className="status-card">
-                      <p>Opening Meter: <strong>{selectedPump.last_meter_reading}</strong></p>
-                      <input 
-                        type="number" step="0.01" placeholder="Enter Closing Meter" 
-                        value={allReadings[selectedPump.fuel_type].meter}
-                        onChange={(e) => setAllReadings({
-                          ...allReadings, 
-                          [selectedPump.fuel_type]: {...allReadings[selectedPump.fuel_type], meter: e.target.value}
-                        })} 
-                      />
-                    </div>
+        <div className="active-pump-form">
+        <div className="entry-grid">
+          <div className="status-card">
+            <p>Opening Meter: <strong>{selectedPump.last_meter_reading}</strong></p>
+            <p>Opening Litres: <strong>{selectedPump.last_litres_reading || 0}</strong></p>
+
+            <input 
+              type="number" 
+              step="0.01" 
+              placeholder="Enter Closing Meter"
+              value={allReadings[selectedPump.fuel_type].meter}
+              onChange={(e) => setAllReadings({
+                ...allReadings,
+                [selectedPump.fuel_type]: { ...allReadings[selectedPump.fuel_type], meter: e.target.value }
+              })}
+            />
+          </div>
                     
                     <div className="status-card" style={{ borderLeft: '4px solid var(--station-gold)' }}>
                       <p>{selectedPump.fuel_type} Sales (Expected)</p>
