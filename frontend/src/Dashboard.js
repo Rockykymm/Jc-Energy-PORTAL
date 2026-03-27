@@ -229,11 +229,14 @@ const Dashboard = ({ user, onLogout }) => {
 
         if (logError) throw logError;
 
-        // 2. Update the 'pumps' table so the next person starts at your closing
-        const { error: pumpUpdateError } = await supabase
-          .from('pumps')
-          .update({ last_meter_reading: closingReading })
-          .eq('fuel_type', p.fuel_type);
+       // 2. Update the 'pumps' table so the next person starts at your closing values
+const { error: pumpUpdateError } = await supabase
+.from('pumps')
+.update({ 
+  last_meter_reading: closingReading,
+  last_litres_reading: recordedLitres // This carries over the litres
+})
+.eq('fuel_type', p.fuel_type);
 
         if (pumpUpdateError) throw pumpUpdateError;
       }
