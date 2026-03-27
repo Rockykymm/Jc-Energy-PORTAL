@@ -68,7 +68,7 @@ const Dashboard = ({ user, onLogout }) => {
       .from('shift_logs')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(40);
+      .limit(60); // Increased limit to ensure full history for reporting
     if (historyData) {
       setHistory(historyData);
     }
@@ -111,35 +111,37 @@ const Dashboard = ({ user, onLogout }) => {
       return allReadings[p.fuel_type].meter !== '';
     });
 
-  // ADDED: Logic to aggregate History into Daily Reports
+  // FIXED LOGIC: Aggregate History into Daily Reports without doubling totals using unique timestamps
   const getDailySummary = () => {
     const summary = {};
-    const today = new Date().toLocaleDateString();
 
     history.forEach(log => {
       const logDate = new Date(log.created_at).toLocaleDateString();
       
-      // 1. Logic: Only include logs that match today's local date
-      if (logDate === today) {
-        if (!summary[logDate]) {
-          summary[logDate] = { date: logDate, totalExpected: 0, totalCash: 0, totalTill: 0, totalDiff: 0 };
-        }
+      if (!summary[logDate]) {
+        summary[logDate] = { 
+          date: logDate, 
+          totalExpected: 0, 
+          totalCash: 0, 
+          totalTill: 0, 
+          processedShifts: new Set() // This Set ensures we only count each handover once
+        };
+      }
+
+      // Unique identifier for the shift event
+      const shiftId = log.created_at;
+
+      // Logic: Only add the money IF we haven't processed this specific timestamp for this day yet
+      if (!summary[logDate].processedShifts.has(shiftId)) {
+        summary[logDate].totalExpected += (log.combined_shift_total || 0);
+        summary[logDate].totalCash += (log.actual_cash || 0);
+        summary[logDate].totalTill += (log.actual_till || 0);
         
-        // Always sum individual pump revenue
-        summary[logDate].totalExpected += (log.expected_total || 0);
-        
-        // 2. Logic: Prevent doubling. Check if this shift (timestamp) has already contributed its cash/till
-        const isDuplicateShiftEntry = history.find(h => 
-          h.created_at === log.created_at && h.id < log.id
-        );
-        
-        if (!isDuplicateShiftEntry) {
-          summary[logDate].totalCash += (log.actual_cash || 0);
-          summary[logDate].totalTill += (log.actual_till || 0);
-          summary[logDate].totalDiff += (log.difference || 0);
-        }
+        // Mark this shift as "counted"
+        summary[logDate].processedShifts.add(shiftId);
       }
     });
+
     return Object.values(summary);
   };
 
@@ -437,18 +439,21 @@ const Dashboard = ({ user, onLogout }) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {getDailySummary().map((day, index) => (
-                    <tr key={index}>
-                      <td><strong>{day.date}</strong></td>
-                      <td>KSh {day.totalExpected.toLocaleString()}</td>
-                      <td style={{ color: '#4dff4d' }}>KSh {day.totalCash.toLocaleString()}</td>
-                      <td style={{ color: '#4db8ff' }}>KSh {day.totalTill.toLocaleString()}</td>
-                      <td>KSh {(day.totalCash + day.totalTill).toLocaleString()}</td>
-                      <td style={{ color: day.totalDiff < 0 ? '#ff4d4d' : '#4dff4d', fontWeight: 'bold' }}>
-                        {day.totalDiff < 0 ? `Short (${day.totalDiff.toFixed(2)})` : `Excess (+${day.totalDiff.toFixed(2)})`}
-                      </td>
-                    </tr>
-                  ))}
+                  {getDailySummary().map((day, index) => {
+                    const netVariance = (day.totalCash + day.totalTill) - day.totalExpected;
+                    return (
+                      <tr key={index}>
+                        <td><strong>{day.date}</strong></td>
+                        <td>KSh {day.totalExpected.toLocaleString()}</td>
+                        <td style={{ color: '#4dff4d' }}>KSh {day.totalCash.toLocaleString()}</td>
+                        <td style={{ color: '#4db8ff' }}>KSh {day.totalTill.toLocaleString()}</td>
+                        <td>KSh {(day.totalCash + day.totalTill).toLocaleString()}</td>
+                        <td style={{ color: netVariance < 0 ? '#ff4d4d' : '#4dff4d', fontWeight: 'bold' }}>
+                          {netVariance < 0 ? `Short (${netVariance.toFixed(2)})` : `Excess (+${netVariance.toFixed(2)})`}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
