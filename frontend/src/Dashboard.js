@@ -80,15 +80,13 @@ const Dashboard = ({ user, onLogout }) => {
 
   // --- 3. BUSINESS CALCULATIONS (Updated for True Meter Logic) ---
   
-  // NEW: Calculate revenue for just the selected pump
+  // FIXED: Meter readings are already in KES — just take the difference, no price multiplication
   const calculateSinglePumpRevenue = (fuelType) => {
     const pump = pumps.find(p => p.fuel_type === fuelType);
     if (!pump) return 0;
     const closing = parseFloat(allReadings[fuelType].meter || 0);
     const opening = parseFloat(pump.last_meter_reading || 0);
-    // Logic: Revenue is strictly the difference in meter readings * unit price
-    // Revenue = (Meter Difference) * Price
-return closing > opening ? (closing - opening) * (pump.unit_price || 0) : 0;
+    return closing > opening ? (closing - opening) : 0;
   };
 
   const calculateTotalExpected = () => {
