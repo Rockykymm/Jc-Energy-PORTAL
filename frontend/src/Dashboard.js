@@ -86,8 +86,8 @@ const Dashboard = ({ user, onLogout }) => {
     if (!pump) return 0;
     const closing = parseFloat(allReadings[fuelType].meter || 0);
     const opening = parseFloat(pump.last_meter_reading || 0);
-    // Logic: Revenue is strictly the difference in meter readings
-    return closing > opening ? closing - opening : 0;
+    // Logic: Revenue is strictly the difference in meter readings * unit price
+    return closing > opening ? (closing - opening) * (pump.unit_price || 0) : 0;
   };
 
   const calculateTotalExpected = () => {
@@ -205,11 +205,13 @@ const Dashboard = ({ user, onLogout }) => {
   
     const majorTotal = parseFloat(expectedRevenue);
     const activePumps = pumps.filter(p => p.is_active);
+    const timestamp = new Date().toISOString();
     
     try {
       // Use for...of to send requests one-by-one to avoid Vercel security blocks
       for (const p of activePumps) {
         const { error } = await supabase.from('shift_logs').insert([{
+          created_at: timestamp,
           attendant_name: user.name,
           fuel_type: p.fuel_type,
           pump_reading_start: p.last_meter_reading,
@@ -223,6 +225,14 @@ const Dashboard = ({ user, onLogout }) => {
         }]);
 
         if (error) throw error;
+
+        // CRITICAL: Update the pump's last_meter_reading in the 'pumps' table
+        const { updateError } = await supabase
+          .from('pumps')
+          .update({ last_meter_reading: parseFloat(allReadings[p.fuel_type].meter) })
+          .eq('id', p.id);
+
+        if (updateError) throw updateError;
       }
 
       alert("Shift Successfully Finalized!");
