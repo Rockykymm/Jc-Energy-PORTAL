@@ -57,12 +57,13 @@ const Dashboard = ({ user, onLogout }) => {
 
     // Fetching Staff for the Admin Management tab
     const { data: staffData } = await supabase
-      .from('staff')
-      .select('*');
-    if (staffData) {
-      setStaff(staffData);
-    }
-
+    .from('staff')
+    .select('id, full_name, work_id, role') // Be specific here
+    .order('full_name', { ascending: true }); // Keep them in alphabetical order
+  
+  if (staffData) {
+    setStaff(staffData); // This pushes the data to your UI list
+  }
     // Fetching Shift Logs for the History tab
     const { data: historyData } = await supabase
       .from('shift_logs')
