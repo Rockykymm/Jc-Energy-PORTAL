@@ -114,19 +114,30 @@ const Dashboard = ({ user, onLogout }) => {
   // ADDED: Logic to aggregate History into Daily Reports
   const getDailySummary = () => {
     const summary = {};
+    const today = new Date().toLocaleDateString();
+
     history.forEach(log => {
-      const date = new Date(log.created_at).toLocaleDateString();
-      if (!summary[date]) {
-        summary[date] = { date, totalExpected: 0, totalCash: 0, totalTill: 0, totalDiff: 0 };
-      }
+      const logDate = new Date(log.created_at).toLocaleDateString();
       
-      const isDuplicateShift = history.find(h => h.created_at === log.created_at && h.id < log.id);
-      
-      summary[date].totalExpected += (log.expected_total || 0);
-      if (!isDuplicateShift) {
-        summary[date].totalCash += (log.actual_cash || 0);
-        summary[date].totalTill += (log.actual_till || 0);
-        summary[date].totalDiff += (log.difference || 0);
+      // 1. Logic: Only include logs that match today's local date
+      if (logDate === today) {
+        if (!summary[logDate]) {
+          summary[logDate] = { date: logDate, totalExpected: 0, totalCash: 0, totalTill: 0, totalDiff: 0 };
+        }
+        
+        // Always sum individual pump revenue
+        summary[logDate].totalExpected += (log.expected_total || 0);
+        
+        // 2. Logic: Prevent doubling. Check if this shift (timestamp) has already contributed its cash/till
+        const isDuplicateShiftEntry = history.find(h => 
+          h.created_at === log.created_at && h.id < log.id
+        );
+        
+        if (!isDuplicateShiftEntry) {
+          summary[logDate].totalCash += (log.actual_cash || 0);
+          summary[logDate].totalTill += (log.actual_till || 0);
+          summary[logDate].totalDiff += (log.difference || 0);
+        }
       }
     });
     return Object.values(summary);
