@@ -87,7 +87,8 @@ const Dashboard = ({ user, onLogout }) => {
     const closing = parseFloat(allReadings[fuelType].meter || 0);
     const opening = parseFloat(pump.last_meter_reading || 0);
     // Logic: Revenue is strictly the difference in meter readings * unit price
-    return closing > opening ? (closing - opening) * (pump.unit_price || 0) : 0;
+    // Revenue = (Meter Difference) * Price
+return closing > opening ? (closing - opening) * (pump.unit_price || 0) : 0;
   };
 
   const calculateTotalExpected = () => {
@@ -200,24 +201,26 @@ const Dashboard = ({ user, onLogout }) => {
       alert("Morning Tank Levels Recorded!");
     }
   };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
+
     const majorTotal = parseFloat(expectedRevenue);
     const activePumps = pumps.filter(p => p.is_active);
     const timestamp = new Date().toISOString();
-    
+
     try {
-      // Use for...of to send requests one-by-one to avoid Vercel security blocks
       for (const p of activePumps) {
-        const { error } = await supabase.from('shift_logs').insert([{
+        const closingReading = parseFloat(allReadings[p.fuel_type].meter);
+        const recordedLitres = parseFloat(allReadings[p.fuel_type].litres) || 0;
+
+        // 1. Insert record into shift_logs
+        const { error: logError } = await supabase.from('shift_logs').insert([{
           created_at: timestamp,
           attendant_name: user.name,
           fuel_type: p.fuel_type,
           pump_reading_start: p.last_meter_reading,
-          pump_reading_end: parseFloat(allReadings[p.fuel_type].meter),
-          litres_sold: parseFloat(allReadings[p.fuel_type].litres) || 0,
+          pump_reading_end: closingReading,
+          litres_sold: recordedLitres,
           expected_total: calculateSinglePumpRevenue(p.fuel_type),
           combined_shift_total: majorTotal,
           actual_cash: parseFloat(closingFunds.cash) || 0,
@@ -226,15 +229,15 @@ const Dashboard = ({ user, onLogout }) => {
           difference: parseFloat(balance)
         }]);
 
-        if (error) throw error;
+        if (logError) throw logError;
 
-        // CRITICAL: Update the pump's last_meter_reading in the 'pumps' table
-        const { updateError } = await supabase
+        // 2. Update the 'pumps' table so the next person starts at your closing
+        const { error: pumpUpdateError } = await supabase
           .from('pumps')
-          .update({ last_meter_reading: parseFloat(allReadings[p.fuel_type].meter) })
-          .eq('id', p.id);
+          .update({ last_meter_reading: closingReading })
+          .eq('fuel_type', p.fuel_type);
 
-        if (updateError) throw updateError;
+        if (pumpUpdateError) throw pumpUpdateError;
       }
 
       alert("Shift Successfully Finalized!");
@@ -242,7 +245,7 @@ const Dashboard = ({ user, onLogout }) => {
 
     } catch (err) {
       console.error("Submission Error:", err);
-      alert(`Error submitting shift: ${err.message || "Please check your connection."}`);
+      alert(`Error submitting shift: ${err.message || "Please check your connection"}`);
     }
   };
 
@@ -380,9 +383,12 @@ const Dashboard = ({ user, onLogout }) => {
                         type="number" step="0.01" placeholder="Enter Litres..." 
                         value={allReadings[selectedPump.fuel_type].litres}
                         onChange={(e) => setAllReadings({
-                          ...allReadings, 
-                          [selectedPump.fuel_type]: {...allReadings[selectedPump.fuel_type], litres: e.target.value}
-                        })} 
+                          ...allReadings,
+                          [selectedPump.fuel_type]: { 
+                            ...allReadings[selectedPump.fuel_type], 
+                            litres: e.target.value 
+                          }
+                        })}
                       />
                     </div>
                   </div>
