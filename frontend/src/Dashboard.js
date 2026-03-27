@@ -192,34 +192,34 @@ const Dashboard = ({ user, onLogout }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
   
-    // 1. Major Total is the combined expected revenue calculated above
     const majorTotal = parseFloat(expectedRevenue);
-  
-    // 2. Create the submission entries for each active pump
-    const submissionPromises = pumps.filter(p => p.is_active).map(p => {
-      return supabase.from('shift_logs').insert([{
-        attendant_name: user.name,
-        fuel_type: p.fuel_type,
-        pump_reading_start: p.last_meter_reading,
-        pump_reading_end: parseFloat(allReadings[p.fuel_type].meter),
-        expected_total: calculateSinglePumpRevenue(p.fuel_type), // Sub-total for this specific pump
-        combined_shift_total: majorTotal, // The Major total for the entire shift
-        actual_cash: parseFloat(closingFunds.cash) || 0,
-        actual_till: parseFloat(closingFunds.till) || 0,
-        total_collected: parseFloat(totalCollected),
-        difference: parseFloat(balance)
-      }]);
-    });
-  
-    // 3. Execute all inserts and check for errors
-    const results = await Promise.all(submissionPromises);
+    const activePumps = pumps.filter(p => p.is_active);
     
-    if (!results.some(res => res.error)) {
+    try {
+      // Use for...of to send requests one-by-one to avoid Vercel security blocks
+      for (const p of activePumps) {
+        const { error } = await supabase.from('shift_logs').insert([{
+          attendant_name: user.name,
+          fuel_type: p.fuel_type,
+          pump_reading_start: p.last_meter_reading,
+          pump_reading_end: parseFloat(allReadings[p.fuel_type].meter),
+          expected_total: calculateSinglePumpRevenue(p.fuel_type),
+          combined_shift_total: majorTotal,
+          actual_cash: parseFloat(closingFunds.cash) || 0,
+          actual_till: parseFloat(closingFunds.till) || 0,
+          total_collected: parseFloat(totalCollected),
+          difference: parseFloat(balance)
+        }]);
+
+        if (error) throw error;
+      }
+
       alert("Shift Successfully Finalized!");
       window.location.reload();
-    } else {
-      alert("Error submitting shift. Please check your connection.");
-      console.error(results.map(res => res.error).filter(Boolean));
+
+    } catch (err) {
+      console.error("Submission Error:", err);
+      alert(`Error submitting shift: ${err.message || "Please check your connection."}`);
     }
   };
 
@@ -458,7 +458,7 @@ const Dashboard = ({ user, onLogout }) => {
                             type="text" 
                             defaultValue={s.name} 
                             placeholder="Name"
-                            onClick={(e) => e.stopPropagation()} // Prevents filter trigger when just editing name
+                            onClick={(e) => e.stopPropagation()} 
                             onBlur={(e) => updateStaffMember(s.id, 'name', e.target.value)} 
                             style={{ flex: 2, padding: '5px' }}
                           />
@@ -532,7 +532,6 @@ const Dashboard = ({ user, onLogout }) => {
                   {filterEmployee ? `Audit Records: ${filterEmployee}` : "Shift History"}
                 </h2>
                 
-                {/* ADDED: Search Bar UI */}
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                   <input 
                     type="text" 
@@ -577,12 +576,10 @@ const Dashboard = ({ user, onLogout }) => {
                 <tbody className="history-tbody">
                   {history
                     .filter(log => {
-                        // Manager audits selected person OR sees everyone. Attendants ONLY see themselves.
                         const matchesUser = user.workId === '001' 
                           ? (!filterEmployee || log.attendant_name === filterEmployee)
                           : log.attendant_name === user.name;
                         
-                        // NEW: Add Search Logic to the filter
                         const lowerSearch = searchQuery.toLowerCase();
                         const matchesSearch = 
                           log.attendant_name?.toLowerCase().includes(lowerSearch) ||
@@ -592,7 +589,6 @@ const Dashboard = ({ user, onLogout }) => {
                         return matchesUser && matchesSearch;
                     })
                     .map((log, index, filteredArray) => {
-                    // Important: The grouping logic must now use the filteredArray to keep rowspans accurate
                     const isFirstInShift = index === 0 || log.created_at !== filteredArray[index - 1]?.created_at;
                     const shiftRowCount = filteredArray.filter(item => item.created_at === log.created_at).length;
 
