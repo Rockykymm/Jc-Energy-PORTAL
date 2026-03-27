@@ -217,6 +217,7 @@ const Dashboard = ({ user, onLogout }) => {
           fuel_type: p.fuel_type,
           pump_reading_start: p.last_meter_reading,
           pump_reading_end: parseFloat(allReadings[p.fuel_type].meter),
+          litres_sold: parseFloat(allReadings[p.fuel_type].litres) || 0,
           expected_total: calculateSinglePumpRevenue(p.fuel_type),
           combined_shift_total: majorTotal,
           actual_cash: parseFloat(closingFunds.cash) || 0,
@@ -366,7 +367,6 @@ const Dashboard = ({ user, onLogout }) => {
                       />
                     </div>
                     
-                    {/* NEW: Individual Pump Revenue Display */}
                     <div className="status-card" style={{ borderLeft: '4px solid var(--station-gold)' }}>
                       <p>{selectedPump.fuel_type} Sales (Expected)</p>
                       <h3 style={{ color: 'var(--station-gold)', margin: '10px 0' }}>
@@ -374,10 +374,10 @@ const Dashboard = ({ user, onLogout }) => {
                       </h3>
                     </div>
 
-                    <div className="status-card" style={{ opacity: 0.6 }}>
-                      <p>Last recorded Litres: <strong>{selectedPump.last_litre_reading}</strong></p>
+                    <div className="status-card">
+                      <p>Litres Sold (Optional)</p>
                       <input 
-                        type="number" step="0.01" placeholder="Litres (Optional)" 
+                        type="number" step="0.01" placeholder="Enter Litres..." 
                         value={allReadings[selectedPump.fuel_type].litres}
                         onChange={(e) => setAllReadings({
                           ...allReadings, 
@@ -591,6 +591,7 @@ const Dashboard = ({ user, onLogout }) => {
                     <th>Attendant</th>
                     <th>Pump</th>
                     <th>Meter Start → End</th>
+                    <th>Litres Sold</th>
                     <th>Pump Sales</th>
                     <th>Shift Total (Major)</th>
                     <th>Cash</th>
@@ -642,6 +643,7 @@ const Dashboard = ({ user, onLogout }) => {
                         
                         <td style={{ fontWeight: 'bold' }}>{log.fuel_type}</td>
                         <td>{log.pump_reading_start} → {log.pump_reading_end}</td>
+                        <td>{log.litres_sold || '-'}</td>
                         <td style={{ color: 'var(--station-gold)' }}>KSh {log.expected_total?.toLocaleString()}</td>
                         
                         {isFirstInShift ? (
