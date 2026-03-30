@@ -1,29 +1,24 @@
-⛽ JC Energy - Fuel Management & Staff Portal A cloud-native, full-stack ERP solution built to automate fuel inventory tracking, sales reconciliation, and staff management for petrol stations.
+🚀 The Engineering Evolution: From Script to System
+The JC Energy Portal began as a Python-based prototype and evolved into a production-ready Full-Stack ERP. This transition represents a significant leap in technical architecture and user experience.
 
-### 🚀 Live Demo
-[View Live Application](https://jc-energy-app-oggcah2jnvmumtjhexrxpd.streamlit.app/)
+Phase 1: The Python Prototype (Streamlit)
+Objective: Fast proof-of-concept to digitize manual paper records.
 
-🛠️ Tech Stack Front-end: Python + Streamlit (Custom CSS branding for high-contrast visibility)
+Tech: Python, Streamlit, Pandas.
 
-Back-end: Supabase (PostgreSQL) for real-time data persistence
+Limitation: Synchronous execution (the page reran on every click) and limited UI flexibility for complex station management.
 
-Deployment: GitHub & Streamlit Cloud
+Phase 2: The Modern ERP (React & Supabase)
+Objective: A high-performance, real-time dashboard capable of handling multi-staff shifts and secure auditing.
 
-Security: Streamlit Secrets management for encrypted database credentials
+Tech: React (Vite), Supabase (PostgreSQL), Tailwind CSS, Vercel.
 
-✨ Key Features Secure Authentication: Staff login via unique Work IDs to ensure data integrity.
+Key Upgrades:
 
-Automated Calculations: Eliminates manual human error in shift recording (Start/End Ltr vs. Revenue).
+State Management: Implemented complex UI states for seamless tab switching (Dipstick → Handover → History).
 
-Management Dashboard: Real-time visibility into Total Volume, Total Revenue, and Net Balance.
+Relational Database: Migrated from flat files to a structured PostgreSQL schema, enabling deep auditing of staff performance and fuel sales.
 
-Responsive Design: Optimized for mobile use on the station floor.
+Security & Auth: Integrated Supabase Auth to ensure sensitive price settings are only accessible to authorized personnel.
 
-🧠 Technical Challenges Solved Database Schema Alignment: Manually managed PostgreSQL migrations using the Supabase SQL Editor to support dynamic pricing and inventory logic.
-
-UI/UX Accessibility: Developed a custom "Readable-Card" system to ensure text remains legible against high-branding dark themes in outdoor lighting.
-
-Session Management: Implemented custom session-state logic to handle secure logouts and automatic redirects upon shift completion.
-
-📈 Business Impact This system replaces manual paper logs, reducing reconciliation time by over 80% and providing management with instant, cloud-accessible financial reports.
-This system replaces manual paper logs, reducing reconciliation time by over 80% and providing management with instant, cloud-accessible financial reports.
+Deployment: Transitioned to a CI/CD workflow via GitHub and Vercel for instant production updates.
