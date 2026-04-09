@@ -249,7 +249,7 @@ const { error: pumpUpdateError } = await supabase
       console.error("Submission Error:", err);
       alert(`Error submitting shift: ${err.message || "Please check your connection"}`);
     }
-  };
+  
 
   // --- 5. INTERFACE RENDERING ---
   return (
