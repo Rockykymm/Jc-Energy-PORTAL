@@ -3,7 +3,6 @@ import { supabase } from './supabaseClient';
 import './App.css';
 
   // --- 1. STATE MANAGEMENT (Expanded) ---
-  const Dashboard = ({ user, onLogout }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState('handover'); 
   const [pumps, setPumps] = useState([]); 
@@ -257,9 +256,6 @@ const { error: pumpUpdateError } = await supabase
     <div className="dashboard-wrapper">
       {/* SIDEBAR NAVIGATION SECTION */}
     <aside className={`sidebar ${sidebarOpen ? 'open' : 'collapsed'}`}>
-  <button className="sidebar-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>
-    {sidebarOpen ? '◀' : '▶'}
-  </button>
         <div className="sidebar-brand">
           <img src="/logo.png" alt="JC Energy" className="sidebar-logo-img" />
         </div>
