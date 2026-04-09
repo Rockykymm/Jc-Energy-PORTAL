@@ -48,13 +48,14 @@ function App() {
     setIdInput(''); 
   };
 
-  return (
-    <div className="App">
+ return (
+    <div className={`App ${!isSidebarOpen ? 'sidebar-closed' : ''}`}>
       {!isLoggedIn ? (
+        /* --- LOGIN SCREEN (Stay as is) --- */
         <div className="login-container">
           <div className="login-box">
             <div className="login-header-inline">
-               <img src="/logo.png" alt="JC" className="mini-login-logo" />
+               <img src="/jclogo.png" alt="JC" className="mini-login-logo" />
                <h1 className="login-title">JC ENERGY PORTAL</h1>
             </div>
             <p className="subtitle">Advanced Monitoring & Management Interface</p>
@@ -74,10 +75,22 @@ function App() {
           </div>
         </div>
       ) : (
-        <Dashboard user={user} onLogout={handleLogout} />
+        /* --- DASHBOARD WITH TOGGLE ARROW --- */
+        <div className="dashboard-wrapper">
+          {/* This is your Arrow Button */}
+          <button 
+            className="sidebar-toggle" 
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          >
+            {isSidebarOpen ? '◀' : '▶'}
+          </button>
+
+          <Dashboard 
+            user={user} 
+            onLogout={handleLogout} 
+            isSidebarOpen={isSidebarOpen} 
+          />
+        </div>
       )}
     </div>
   );
-}
-
-export default App;
