@@ -10,7 +10,8 @@ import './App.css';
   const [staff, setStaff] = useState([]); 
   const [selectedPump, setSelectedPump] = useState(null);
   const [history, setHistory] = useState([]);
-  
+  const [refills, setRefills] = useState([]);
+    
   // NEW: Filtering state for Manager Audit
   const [filterEmployee, setFilterEmployee] = useState(null);
 
@@ -251,7 +252,22 @@ const { error: pumpUpdateError } = await supabase
       alert(`Error submitting shift: ${err.message || "Please check your connection"}`);
     }
   };
+const removeStaff = async (id) => {
+    if (window.confirm("Are you sure you want to remove this staff member?")) {
+      const { error } = await supabase
+        .from('staff')
+        .delete()
+        .eq('id', id);
 
+      if (error) {
+        alert("Error: " + error.message);
+      } else {
+        // Refresh the local state so the table updates immediately
+        const { data } = await supabase.from('staff').select('*');
+        setStaff(data);
+      }
+    }
+  };
   // --- 5. INTERFACE RENDERING ---
   return (
     <div className="dashboard-wrapper">
@@ -276,6 +292,19 @@ const { error: pumpUpdateError } = await supabase
           >
             📂 New Handover
           </button>
+              <button
+          className={activeTab === 'pump_mgmt' ? 'nav-item active' : 'nav-item'}
+          onClick={() => setActiveTab('pump_mgmt')}
+        >
+          ⛽ Pump Management
+        </button>
+
+        <button
+          className={activeTab === 'refills' ? 'nav-item active' : 'nav-item'}
+          onClick={() => setActiveTab('refills')}
+        >
+          🚛 Fuel Refills
+        </button>
           <button 
             className={activeTab === 'history' ? 'nav-item active' : 'nav-item'} 
             onClick={() => {
@@ -426,7 +455,68 @@ const { error: pumpUpdateError } = await supabase
                     Balance: KES {balance}
                   </h2>
                 </div>
-
+ TAB: PUMP MANAGEMENT 
+      {activeTab === 'pump_mgmt' && (
+        <div className="history-card">
+          <h2 className="section-title">Pump Settings & Pricing</h2>
+          <div className="pump-settings-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginTop: '20px' }}>
+            {pumps.map((pump) => (
+              <div key={pump.id} className="status-card" style={{ padding: '20px', border: '1px solid #444', borderRadius: '12px', background: '#1a1a1a' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h3 style={{ color: '#ffcc00', margin: 0 }}>{pump.fuel_type}</h3>
+                  <span style={{ 
+                    padding: '4px 10px', 
+                    borderRadius: '20px', 
+                    fontSize: '12px', 
+                    fontWeight: 'bold',
+                    background: pump.status === 'OPEN' ? '#00cc66' : '#ff4d4d' 
+                  }}>
+                    {pump.status}
+                  </span>
+                </div>
+                <p style={{ fontSize: '24px', margin: '15px 0' }}>KSh {pump.price}</p>
+                <button className="edit-link" style={{ width: '100%', padding: '8px', border: '1px solid #4db8ff', borderRadius: '5px', color: '#4db8ff', background: 'none' }}>
+                  Update Price
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {/* TAB: FUEL REFILLS */}
+      {activeTab === 'refills' && (
+        <div className="history-card">
+          <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+            <h2 className="section-title">Fuel Refill History</h2>
+            <button className="finalize-btn" style={{ width: 'auto', padding: '10px 20px' }}>+ RECORD NEW REFILL</button>
+          </div>
+          
+          <table className="history-table" style={{ width: '100%' }}>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Fuel Type</th>
+                <th>Quantity (Litres)</th>
+                <th>Supplier/LPO</th>
+              </tr>
+            </thead>
+            <tbody>
+              {refills.length > 0 ? refills.map((r) => (
+                <tr key={r.id}>
+                  <td>{new Date(r.created_at).toLocaleDateString()}</td>
+                  <td>{r.fuel_type}</td>
+                  <td>{r.litres}L</td>
+                  <td>{r.supplier}</td>
+                </tr>
+              )) : (
+                <tr>
+                  <td colSpan="4" style={{ textAlign: 'center', padding: '20px' }}>No refills recorded yet.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
                 <button 
                   onClick={handleSubmit} 
                   disabled={!areReadingsComplete || !closingFunds.cash} 
