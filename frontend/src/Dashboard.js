@@ -255,7 +255,7 @@ const { error: pumpUpdateError } = await supabase
   return (
     <div className="dashboard-wrapper">
       {/* SIDEBAR NAVIGATION SECTION */}
-    <aside className={`sidebar ${sidebarOpen ? 'open' : 'collapsed'}`}>
+    <aside className={`sidebar ${isdebarOpen ? 'open' : 'collapsed'}`}>
         <div className="sidebar-brand">
           <img src="/logo.png" alt="JC Energy" className="sidebar-logo-img" />
         </div>
@@ -305,8 +305,7 @@ const { error: pumpUpdateError } = await supabase
           <button className="logout-sidebar" onClick={onLogout}>Logout</button>
         </div>
       </aside>
-
-      <div className={`main-container ${sidebarOpen ? '' : 'expanded'}`}>
+      <div className={`main-container ${isSidebarOpen ? '' : 'expanded'}`}>
         <header className="station-header">
           <h2 className="portal-title">JC ENERGY PORTAL</h2>
           <div className="welcome-badge">
