@@ -411,47 +411,43 @@ input {
   border-radius: 10px;
 }
 /* --- UPDATED MOBILE RESPONSIVE LAYOUT --- */
-/* --- ULTIMATE MOBILE UI FIX --- */
+/* --- SIDE-BY-SIDE MOBILE FIX --- */
 @media screen and (max-width: 768px) {
   .dashboard-container {
     display: flex !important;
-    flex-direction: column !important; /* Stacks sidebar ON TOP of content */
+    flex-direction: row !important; /* Sidebar left, Content right */
+    width: 100vw !important;
     height: 100vh !important;
-    width: 100% !important;
     overflow: hidden !important;
   }
 
   .sidebar {
-    width: 100% !important;
-    /* This makes the sidebar only as tall as the logo/links, 
-       leaving 75% of the screen for your forms */
-    height: auto !important; 
-    max-height: 25vh !important; 
-    padding: 10px !important;
-    overflow-y: auto !important; /* If you have many links, scroll them here */
-    border-right: none !important;
-    border-bottom: 2px solid var(--station-gold) !important;
+    width: 30% !important; /* Narrow sidebar */
+    min-width: 110px !important; 
+    height: 100vh !important;
     flex-shrink: 0 !important;
-    background-color: var(--forest-green) !important;
+    padding: 10px 5px !important;
+    font-size: 11px !important;
+    overflow-y: auto !important;
   }
 
   .main-content {
-    flex: 1 !important; /* This forces it to take up all remaining space */
-    width: 100% !important;
+    flex: 1 !important; /* Takes the remaining 70% of width */
+    height: 100vh !important;
     padding: 15px !important;
-    margin: 0 !important;
-    overflow-y: auto !important; /* Enables scrolling for your forms */
-    background-color: #f4f4f4 !important; /* Light background so text is readable */
+    overflow-y: auto !important; /* This lets you scroll your forms */
+    background-color: #f4f4f4 !important;
+    color: #333 !important; /* Darker text for readability on light background */
   }
 
   .sidebar-logo {
-    width: 40px !important; /* Smaller logo to save vertical space */
-    margin: 0 auto 5px auto !important;
+    width: 45px !important;
+    margin: 0 auto 10px auto !important;
   }
 
   .nav-item {
-    padding: 8px !important;
-    font-size: 13px !important;
-    text-align: center !important;
+    padding: 8px 4px !important;
+    margin-bottom: 5px !important;
+    text-align: left !important;
   }
 }
