@@ -252,22 +252,7 @@ const { error: pumpUpdateError } = await supabase
       alert(`Error submitting shift: ${err.message || "Please check your connection"}`);
     }
   };
-const removeStaff = async (id) => {
-    if (window.confirm("Are you sure you want to remove this staff member?")) {
-      const { error } = await supabase
-        .from('staff')
-        .delete()
-        .eq('id', id);
 
-      if (error) {
-        alert("Error: " + error.message);
-      } else {
-        // Refresh the local state so the table updates immediately
-        const { data } = await supabase.from('staff').select('*');
-        setStaff(data);
-      }
-    }
-  };
   // --- 5. INTERFACE RENDERING ---
   return (
     <div className="dashboard-wrapper">
