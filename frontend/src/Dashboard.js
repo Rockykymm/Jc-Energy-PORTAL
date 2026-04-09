@@ -2,51 +2,40 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import './App.css';
 
-  // --- 1. STATE MANAGEMENT (Expanded) ---
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+const Dashboard = ({ user, onLogout, isSidebarOpen }) => {
   const [activeTab, setActiveTab] = useState('handover'); 
   const [pumps, setPumps] = useState([]); 
   const [staff, setStaff] = useState([]); 
   const [selectedPump, setSelectedPump] = useState(null);
   const [history, setHistory] = useState([]);
-  
-  // NEW: Filtering state for Manager Audit
   const [filterEmployee, setFilterEmployee] = useState(null);
-
-  // ADDED: Search state for History Tab
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Detailed individual readings for all fuel types
   const [allReadings, setAllReadings] = useState({
     Super: { meter: '', litres: '' },
     Diesel: { meter: '', litres: '' },
     Kerosene: { meter: '', litres: '' }
   });
 
-  // Tank level monitoring (Morning Dipstick)
   const [dipstick, setDipstick] = useState({
     Super: '',
     Diesel: '',
     Kerosene: ''
   });
 
-  // Financial tracking state
   const [closingFunds, setClosingFunds] = useState({ 
     cash: '', 
     till: '' 
   });
 
-  // --- 2. DATA FETCHING LOGIC ---
   const fetchData = async () => {
-    // Fetching Pump Pricing and Status
-    const { data: pumpData, error: pumpError } = await supabase
+    const { data: pumpData } = await supabase
       .from('pumps')
       .select('*')
       .order('fuel_type', { ascending: true });
 
     if (pumpData) {
       setPumps(pumpData);
-      // Auto-selection logic for UI convenience
       const firstActive = pumpData.find(p => p.is_active === true);
       if (firstActive) {
         setSelectedPump(firstActive);
@@ -55,21 +44,20 @@ import './App.css';
       }
     }
 
-    // Fetching Staff for the Admin Management tab
     const { data: staffData } = await supabase
-    .from('staff')
-    .select('id, full_name, work_id, role') // Be specific here
-    .order('full_name', { ascending: true }); // Keep them in alphabetical order
+      .from('staff')
+      .select('id, full_name, work_id, role')
+      .order('full_name', { ascending: true });
   
-  if (staffData) {
-    setStaff(staffData); // This pushes the data to your UI list
-  }
-    // Fetching Shift Logs for the History tab
+    if (staffData) {
+      setStaff(staffData);
+    }
+
     const { data: historyData } = await supabase
       .from('shift_logs')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(60); // Increased limit to ensure full history for reporting
+      .limit(60);
     if (historyData) {
       setHistory(historyData);
     }
@@ -79,9 +67,6 @@ import './App.css';
     fetchData();
   }, []);
 
-  // --- 3. BUSINESS CALCULATIONS (Updated for True Meter Logic) ---
-  
-  // FIXED: Meter readings are already in KES — just take the difference, no price multiplication
   const calculateSinglePumpRevenue = (fuelType) => {
     const pump = pumps.find(p => p.fuel_type === fuelType);
     if (!pump) return 0;
@@ -104,17 +89,14 @@ import './App.css';
   const totalCollected = (parseFloat(closingFunds.cash || 0) + parseFloat(closingFunds.till || 0)).toFixed(2);
   const balance = (totalCollected - expectedRevenue).toFixed(2);
 
-  // Requirement: Validate that all OPEN pumps have readings before allowing submission
   const areReadingsComplete = pumps
     .filter(p => p.is_active === true)
     .every(p => {
       return allReadings[p.fuel_type].meter !== '';
     });
 
-  // FIXED LOGIC: Aggregate History into Daily Reports without doubling totals using unique timestamps
   const getDailySummary = () => {
     const summary = {};
-
     history.forEach(log => {
       const dateObj = new Date(log.created_at);
       const logDate = dateObj.toLocaleDateString();
@@ -137,14 +119,12 @@ import './App.css';
         summary[logDate].totalExpected += (Number(log.combined_shift_total) || 0);
         summary[logDate].totalCash += (Number(log.actual_cash) || 0);
         summary[logDate].totalTill += (Number(log.actual_till) || 0);
-        
         summary[logDate].processedShifts.add(shiftId);
       }
     });
-
     return Object.values(summary);
   };
-  // --- 4. DATABASE ACTIONS ---
+
   const updatePrice = async (id, newPrice) => {
     const { error } = await supabase
       .from('pumps')
@@ -153,7 +133,6 @@ import './App.css';
     if (!error) fetchData();
   };
 
-  // ADDED: Staff Management Actions
   const updateStaffMember = async (id, field, value) => {
     const { error } = await supabase
       .from('staff')
@@ -200,6 +179,7 @@ import './App.css';
       alert("Morning Tank Levels Recorded!");
     }
   };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -212,7 +192,6 @@ import './App.css';
         const closingReading = parseFloat(allReadings[p.fuel_type].meter);
         const recordedLitres = parseFloat(allReadings[p.fuel_type].litres) || 0;
 
-        // 1. Insert record into shift_logs
         const { error: logError } = await supabase.from('shift_logs').insert([{
           created_at: timestamp,
           attendant_name: user.name,
@@ -230,14 +209,13 @@ import './App.css';
 
         if (logError) throw logError;
 
-       // 2. Update the 'pumps' table so the next person starts at your closing values
-const { error: pumpUpdateError } = await supabase
-.from('pumps')
-.update({ 
-  last_meter_reading: closingReading,
-  last_litres_reading: recordedLitres // This carries over the litres
-})
-.eq('fuel_type', p.fuel_type);
+        const { error: pumpUpdateError } = await supabase
+          .from('pumps')
+          .update({ 
+            last_meter_reading: closingReading,
+            last_litres_reading: recordedLitres
+          })
+          .eq('fuel_type', p.fuel_type);
 
         if (pumpUpdateError) throw pumpUpdateError;
       }
@@ -249,13 +227,12 @@ const { error: pumpUpdateError } = await supabase
       console.error("Submission Error:", err);
       alert(`Error submitting shift: ${err.message || "Please check your connection"}`);
     }
-  
+  };
 
-  // --- 5. INTERFACE RENDERING ---
   return (
     <div className="dashboard-wrapper">
       {/* SIDEBAR NAVIGATION SECTION */}
-    <aside className={`sidebar ${isdebarOpen ? 'open' : 'collapsed'}`}>
+      <aside className={`sidebar ${isSidebarOpen ? 'open' : 'collapsed'}`}>
         <div className="sidebar-brand">
           <img src="/logo.png" alt="JC Energy" className="sidebar-logo-img" />
         </div>
@@ -276,22 +253,18 @@ const { error: pumpUpdateError } = await supabase
             className={activeTab === 'history' ? 'nav-item active' : 'nav-item'} 
             onClick={() => {
               setActiveTab('history');
-              setFilterEmployee(null); // Reset audit when clicking manually
-              setSearchQuery(''); // Reset search
+              setFilterEmployee(null);
+              setSearchQuery('');
             }}
           >
             📜 Shift History
           </button>
-
-          {/* ADDED: Daily Reports Button */}
           <button 
             className={activeTab === 'reports' ? 'nav-item active' : 'nav-item'} 
             onClick={() => setActiveTab('reports')}
           >
             📊 Daily Reports
           </button>
-
-          {/* Admin Restricted Management Tab */}
           {user.workId === '001' && (
             <button 
               className={activeTab === 'management' ? 'nav-item active' : 'nav-item'} 
@@ -305,6 +278,7 @@ const { error: pumpUpdateError } = await supabase
           <button className="logout-sidebar" onClick={onLogout}>Logout</button>
         </div>
       </aside>
+
       <div className={`main-container ${isSidebarOpen ? '' : 'expanded'}`}>
         <header className="station-header">
           <h2 className="portal-title">JC ENERGY PORTAL</h2>
@@ -316,7 +290,6 @@ const { error: pumpUpdateError } = await supabase
 
         <main className="content-area">
           
-          {/* TAB: DIPSTICK MEASUREMENTS */}
           {activeTab === 'dipstick' && (
             <div className="handover-card">
               <h2 className="section-title">Morning Tank Dipstick Readings</h2>
@@ -338,7 +311,6 @@ const { error: pumpUpdateError } = await supabase
             </div>
           )}
 
-          {/* TAB: NEW SHIFT HANDOVER */}
           {activeTab === 'handover' && (
             <div className="handover-card">
               <h2 className="section-title">Shift Handover: {selectedPump?.fuel_type}</h2>
@@ -357,23 +329,22 @@ const { error: pumpUpdateError } = await supabase
               </div>
 
               {selectedPump && (
-        <div className="active-pump-form">
-        <div className="entry-grid">
-          <div className="status-card">
-            <p>Opening Meter: <strong>{selectedPump.last_meter_reading}</strong></p>
-            <p>Opening Litres: <strong>{selectedPump.last_litres_reading || 0}</strong></p>
-
-            <input 
-              type="number" 
-              step="0.01" 
-              placeholder="Enter Closing Meter"
-              value={allReadings[selectedPump.fuel_type].meter}
-              onChange={(e) => setAllReadings({
-                ...allReadings,
-                [selectedPump.fuel_type]: { ...allReadings[selectedPump.fuel_type], meter: e.target.value }
-              })}
-            />
-          </div>
+                <div className="active-pump-form">
+                  <div className="entry-grid">
+                    <div className="status-card">
+                      <p>Opening Meter: <strong>{selectedPump.last_meter_reading}</strong></p>
+                      <p>Opening Litres: <strong>{selectedPump.last_litres_reading || 0}</strong></p>
+                      <input 
+                        type="number" 
+                        step="0.01" 
+                        placeholder="Enter Closing Meter"
+                        value={allReadings[selectedPump.fuel_type].meter}
+                        onChange={(e) => setAllReadings({
+                          ...allReadings,
+                          [selectedPump.fuel_type]: { ...allReadings[selectedPump.fuel_type], meter: e.target.value }
+                        })}
+                      />
+                    </div>
                     
                     <div className="status-card" style={{ borderLeft: '4px solid var(--station-gold)' }}>
                       <p>{selectedPump.fuel_type} Sales (Expected)</p>
@@ -433,7 +404,6 @@ const { error: pumpUpdateError } = await supabase
             </div>
           )}
 
-          {/* TAB: DAILY REPORTS SUMMARY */}
           {activeTab === 'reports' && (
             <div className="history-card">
               <h2 className="section-title">Daily Performance Summary</h2>
@@ -469,13 +439,11 @@ const { error: pumpUpdateError } = await supabase
             </div>
           )}
 
-          {/* TAB: MANAGEMENT COMMAND CENTER */}
           {activeTab === 'management' && (
             <div className="management-card">
               <h2 className="section-title">Admin Management</h2>
               <div className="management-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
                 
-                {/* Section 1: Staff & Employees */}
                 <div className="manage-box" style={{ background: '#1a1a1a', padding: '20px', borderRadius: '8px' }}>
                   <h3 style={{ color: 'var(--station-gold)', marginBottom: '15px' }}>Staff Management</h3>
                   <div className="staff-list" style={{ maxHeight: '400px', overflowY: 'auto' }}>
@@ -490,7 +458,7 @@ const { error: pumpUpdateError } = await supabase
                         }}
                       >
                         <div style={{ display: 'flex', gap: '10px', marginBottom: '8px' }}>
-                           <input 
+                          <input 
                             type="text" 
                             defaultValue={s.name} 
                             placeholder="Name"
@@ -530,7 +498,6 @@ const { error: pumpUpdateError } = await supabase
                   </button>
                 </div>
 
-                {/* Section 2: Pumps */}
                 <div className="manage-box" style={{ background: '#1a1a1a', padding: '20px', borderRadius: '8px' }}>
                   <h3 style={{ color: 'var(--station-gold)', marginBottom: '15px' }}>Pump Settings</h3>
                   {pumps.map(p => (
@@ -560,7 +527,6 @@ const { error: pumpUpdateError } = await supabase
             </div>
           )}
 
-          {/* TAB: SHIFT HISTORY LOGS */}
           {activeTab === 'history' && (
             <div className="history-card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
