@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import './App.css';
 
-const Dashboard = ({ user, onLogout }) => {
   // --- 1. STATE MANAGEMENT (Expanded) ---
+  const Dashboard = ({ user, onLogout }) => {
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState('handover'); 
   const [pumps, setPumps] = useState([]); 
   const [staff, setStaff] = useState([]); 
@@ -255,7 +256,10 @@ const { error: pumpUpdateError } = await supabase
   return (
     <div className="dashboard-wrapper">
       {/* SIDEBAR NAVIGATION SECTION */}
-      <aside className="sidebar">
+    <aside className={`sidebar ${sidebarOpen ? 'open' : 'collapsed'}`}>
+  <button className="sidebar-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>
+    {sidebarOpen ? '◀' : '▶'}
+  </button>
         <div className="sidebar-brand">
           <img src="/logo.png" alt="JC Energy" className="sidebar-logo-img" />
         </div>
@@ -306,7 +310,7 @@ const { error: pumpUpdateError } = await supabase
         </div>
       </aside>
 
-      <div className="main-container">
+      <div className={`main-container ${sidebarOpen ? '' : 'expanded'}`}>
         <header className="station-header">
           <h2 className="portal-title">JC ENERGY PORTAL</h2>
           <div className="welcome-badge">
