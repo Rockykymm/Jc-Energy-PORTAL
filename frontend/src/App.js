@@ -3,6 +3,7 @@ import Dashboard from './Dashboard';
 import './App.css';
 
 function App() {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
   const [idInput, setIdInput] = useState(''); 
