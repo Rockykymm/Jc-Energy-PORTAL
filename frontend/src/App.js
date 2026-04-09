@@ -1,14 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // Added useEffect here
 import Dashboard from './Dashboard'; 
 import './App.css';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
-  const [idInput, setIdInput] = useState(''); // Track what is typed in the ID box
+  const [idInput, setIdInput] = useState(''); 
+
+  // --- START OF PWA PROGRESS CODE ---
+  useEffect(() => {
+    // This registers the sw.js file you created in the public folder
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then((registration) => {
+            console.log('JC Energy SW registered: ', registration);
+          })
+          .catch((error) => {
+            console.log('SW registration failed: ', error);
+          });
+      });
+    }
+  }, []);
+  // --- END OF PWA PROGRESS CODE ---
 
   const handleLogin = () => {
-    // If the ID entered is 001, give Admin privileges
     if (idInput === '001') {
       setUser({ 
         name: 'Peter Kimani', 
@@ -16,7 +32,6 @@ function App() {
         workId: '001' 
       });
     } else {
-      // For any other ID, log in as a standard staff member
       setUser({ 
         name: `Staff Member (${idInput})`, 
         role: 'staff', 
@@ -29,7 +44,7 @@ function App() {
   const handleLogout = () => {
     setIsLoggedIn(false);
     setUser(null);
-    setIdInput(''); // Reset input on logout
+    setIdInput(''); 
   };
 
   return (
