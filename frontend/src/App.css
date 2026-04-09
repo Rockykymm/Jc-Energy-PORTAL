@@ -445,12 +445,18 @@ input {
   }
 
   /* When the class 'sidebar-closed' is added, slide the menu away */
-  .sidebar-closed .sidebar {
-    transform: translateX(-100%);
-    width: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
+  .sidebar.collapsed {
+  width: 50px !important;
+  transform: none;
+}
+.sidebar.collapsed .sidebar-nav .nav-item {
+  font-size: 0 !important;
+  padding: 10px !important;
+}
+.sidebar.collapsed .sidebar-brand,
+.sidebar.collapsed .sidebar-footer {
+  display: none;
+}
 
   .main-content {
     flex: 1 !important;
